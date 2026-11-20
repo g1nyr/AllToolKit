@@ -1,0 +1,2513 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alltoolkit — Zero-Upload PDF & Universal Document Studio</title>
+
+  <!-- Fonts: Plus Jakarta Sans, Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            studio: {
+              canvas: '#F5F4F0',
+              surface: '#FFFFFF',
+              subtle: '#FAF9F6',
+              border: '#E4E2DC',
+              darkCanvas: '#111114',
+              darkSurface: '#1A1A1F',
+              darkSubtle: '#222228',
+              darkBorder: '#2E2E36',
+            }
+          },
+          boxShadow: {
+            'bento': '0 1px 2px rgba(24, 24, 27, 0.04), 0 6px 20px -4px rgba(24, 24, 27, 0.06)',
+            'bento-hover': '0 4px 12px rgba(24, 24, 27, 0.06), 0 14px 28px -6px rgba(79, 70, 229, 0.10)',
+            'bento-dark': '0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 24px -4px rgba(0, 0, 0, 0.45)',
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Client-Side Processing Libraries -->
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js"></script>
+
+  <style>
+    body {
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+    .bento-card {
+      border-radius: 20px;
+      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease, border-color 0.22s ease, background-color 0.22s ease;
+    }
+    .bento-interactive:hover {
+      transform: translateY(-2px);
+    }
+    .drop-zone-active {
+      border-color: #4f46e5 !important;
+      background-color: rgba(79, 70, 229, 0.06) !important;
+      transform: scale(1.005);
+    }
+    /* Custom Tactile Range Sliders */
+    input[type="range"] {
+      -webkit-appearance: none;
+      height: 6px;
+      border-radius: 999px;
+      background: #E4E2DC;
+    }
+    .dark input[type="range"] {
+      background: #2E2E36;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #4f46e5;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.35);
+      cursor: pointer;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.4); border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.65); }
+
+    @keyframes pulseSoft {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.85); }
+    }
+    .pulse-dot { animation: pulseSoft 2.4s infinite ease-in-out; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-studio-canvas text-zinc-900 dark:bg-studio-darkCanvas dark:text-zinc-100 antialiased selection:bg-indigo-600 selection:text-white">
+
+  <!-- ======================================================================= -->
+  <!-- TOP TACTILE STUDIO HEADER                                               -->
+  <!-- ======================================================================= -->
+  <header class="sticky top-0 z-40 backdrop-blur-md bg-studio-canvas/85 dark:bg-studio-darkCanvas/85 border-b border-studio-border dark:border-studio-darkBorder">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+
+      <!-- Brand Emblem & Name -->
+      <button id="brandHomeBtn" class="flex items-center gap-3 text-left group focus:outline-none">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-500 to-violet-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/20 group-hover:scale-105 transition-transform">
+          <!-- Custom Geometric Studio Emblem -->
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <rect x="3" y="3" width="7" height="7" rx="2" />
+            <rect x="14" y="3" width="7" height="7" rx="2" />
+            <rect x="3" y="14" width="7" height="7" rx="2" />
+            <circle cx="17.5" cy="17.5" r="3.5" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-display font-extrabold text-lg tracking-tight text-zinc-900 dark:text-white">Alltoolkit</span>
+            <span class="hidden sm:inline-flex font-mono text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-zinc-200/70 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">Studio 3.0</span>
+          </div>
+          <p class="text-[11px] text-zinc-500 dark:text-zinc-400 hidden sm:block">Zero-Upload Document & Media Workstation</p>
+        </div>
+      </button>
+
+      <!-- Center Section Switcher Pills -->
+      <nav class="hidden md:flex items-center p-1 rounded-2xl bg-white/90 dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-sm" aria-label="Primary Sections">
+        <button data-hub-filter="all" class="hub-tab active px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all bg-zinc-900 text-white dark:bg-indigo-600">
+          All Tools
+        </button>
+        <button data-hub-filter="pdf" class="hub-tab px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+          Section A: PDF Suite
+        </button>
+        <button data-hub-filter="studio" class="hub-tab px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+          Section B: All-Format & Docs
+        </button>
+      </nav>
+
+      <!-- Right Controls: Privacy Badge + Theme Toggle -->
+      <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-800 dark:text-emerald-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span>
+          <span class="font-mono text-[11px] font-semibold tracking-tight">100% Local <span class="hidden lg:inline">• Zero Upload</span></span>
+        </div>
+
+        <!-- Theme Switcher Button -->
+        <button id="themeToggleBtn" title="Switch Light / Dark Studio Theme" class="w-10 h-10 rounded-2xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-sm flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:border-indigo-400 transition-colors">
+          <svg id="sunIcon" class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <svg id="moonIcon" class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======================================================================= -->
+  <!-- TOAST NOTIFICATION BANNER                                               -->
+  <!-- ======================================================================= -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4 sm:px-0"></div>
+
+  <!-- ======================================================================= -->
+  <!-- MAIN CONTAINER                                                          -->
+  <!-- ======================================================================= -->
+  <main class="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6 space-y-8">
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 1: BENTO HUB DASHBOARD (Separated into Section A & Section B)    -->
+    <!-- ===================================================================== -->
+    <div id="hubDashboard" class="space-y-8">
+
+      <!-- Universal Smart Drop Hero Banner -->
+      <div id="smartHeroDropzone" class="bento-card bg-studio-surface dark:bg-studio-darkSurface border-2 border-dashed border-studio-border dark:border-studio-darkBorder hover:border-indigo-500 dark:hover:border-indigo-400 shadow-bento dark:shadow-bento-dark p-6 sm:p-8 cursor-pointer group">
+        <input type="file" id="smartHeroInput" multiple class="hidden" />
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div class="flex items-start sm:items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <h1 class="font-display font-bold text-lg sm:text-xl text-zinc-900 dark:text-white">Universal Smart Dropzone</h1>
+                <span class="font-mono text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-indigo-600/10 text-indigo-700 dark:text-indigo-300">AUTO-DETECTS FORMAT</span>
+              </div>
+              <p class="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1 max-w-2xl">
+                Drop any <strong>PDF, PNG, JPG, WebP, SVG, Animated GIF, ZIP, Markdown, JSON, or CSV</strong> anywhere on this page. All processing happens locally inside your browser's memory.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <span class="px-3.5 py-2 rounded-xl bg-zinc-900 dark:bg-indigo-600 text-white text-xs font-semibold shadow-sm group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 transition-colors">
+              Browse Files
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Section Filter Pills -->
+      <div class="flex md:hidden items-center gap-1.5 overflow-x-auto pb-1">
+        <button data-hub-filter="all" class="hub-tab active px-3 py-1.5 rounded-xl text-xs font-semibold bg-zinc-900 text-white dark:bg-indigo-600 shrink-0">All Tools</button>
+        <button data-hub-filter="pdf" class="hub-tab px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shrink-0">Section A: PDF Suite</button>
+        <button data-hub-filter="studio" class="hub-tab px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shrink-0">Section B: All-Format & Docs</button>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- SECTION A: DEDICATED PDF SUITE                                      -->
+      <!-- =================================================================== -->
+      <section id="section-pdf-suite" class="space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 px-1">
+          <div>
+            <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 font-mono text-[11px] font-semibold mb-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+              SECTION A // PDF SUITE
+            </div>
+            <h2 class="font-display font-bold text-xl sm:text-2xl text-zinc-900 dark:text-white tracking-tight">Dedicated PDF Manipulation & Rasterization</h2>
+          </div>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 font-mono">Powered by pdf-lib & Mozilla pdf.js</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- PDF Tool 1: Merge & Organize -->
+          <button data-open-tool="pdf-merge" class="bento-card bento-interactive text-left bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark hover:shadow-bento-hover p-5 flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-11 h-11 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+                </div>
+                <span class="font-mono text-[10px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">MERGE / SPLIT</span>
+              </div>
+              <h3 class="font-display font-bold text-base text-zinc-900 dark:text-white group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Merge & Organize PDFs</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 leading-relaxed">Combine multiple PDFs, visually reorder thumbnails, rotate 90°, delete pages, or extract custom page ranges.</p>
+            </div>
+            <div class="mt-5 pt-3 border-t border-studio-border/60 dark:border-studio-darkBorder flex items-center justify-between text-xs font-semibold text-rose-600 dark:text-rose-400">
+              <span>Launch Workspace</span>
+              <span class="group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </button>
+
+          <!-- PDF Tool 2: PDF to High-DPI Images -->
+          <button data-open-tool="pdf-to-img" class="bento-card bento-interactive text-left bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark hover:shadow-bento-hover p-5 flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <span class="font-mono text-[10px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">1X–3X DPI</span>
+              </div>
+              <h3 class="font-display font-bold text-base text-zinc-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">PDF to High-DPI Images</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 leading-relaxed">Render PDF pages into crisp PNG or JPEG snapshots at up to 216 DPI and download individually or as a ZIP.</p>
+            </div>
+            <div class="mt-5 pt-3 border-t border-studio-border/60 dark:border-studio-darkBorder flex items-center justify-between text-xs font-semibold text-amber-600 dark:text-amber-400">
+              <span>Launch Workspace</span>
+              <span class="group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </button>
+
+          <!-- PDF Tool 3: Watermark, Stamp & Page Numbers -->
+          <button data-open-tool="pdf-stamp" class="bento-card bento-interactive text-left bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark hover:shadow-bento-hover p-5 flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-11 h-11 rounded-2xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
+                </div>
+                <span class="font-mono text-[10px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">STAMP / NUM</span>
+              </div>
+              <h3 class="font-display font-bold text-base text-zinc-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">Watermark & Page Numbers</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 leading-relaxed">Stamp diagonal watermarks or headers with opacity & size control, plus automatic "Page X of Y" footers.</p>
+            </div>
+            <div class="mt-5 pt-3 border-t border-studio-border/60 dark:border-studio-darkBorder flex items-center justify-between text-xs font-semibold text-orange-600 dark:text-orange-400">
+              <span>Launch Workspace</span>
+              <span class="group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </button>
+
+          <!-- PDF Tool 4: Metadata & Security Inspector -->
+          <button data-open-tool="pdf-meta" class="bento-card bento-interactive text-left bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark hover:shadow-bento-hover p-5 flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-11 h-11 rounded-2xl bg-pink-500/10 text-pink-600 dark:text-pink-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                </div>
+                <span class="font-mono text-[10px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">PRIVACY / META</span>
+              </div>
+              <h3 class="font-display font-bold text-base text-zinc-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">Metadata & Privacy Sanitizer</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 leading-relaxed">Inspect page geometry, edit Title/Author/Keywords, or scrub hidden identifying metadata before sharing.</p>
+            </div>
+            <div class="mt-5 pt-3 border-t border-studio-border/60 dark:border-studio-darkBorder flex items-center justify-between text-xs font-semibold text-pink-600 dark:text-pink-400">
+              <span>Launch Workspace</span>
+              <span class="group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- SECTION B: ALL-FORMAT & DOCS STUDIO                                 -->
+      <!-- =================================================================== -->
+      <section id="section-studio-suite" class="space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 px-1">
+          <div>
+            <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-mono text-[11px] font-semibold mb-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+              SECTION B // ALL-FORMAT & DOCS STUDIO
+            </div>
+            <h2 class="font-display font-bold text-xl sm:text-2xl text-zinc-900 dark:text-white tracking-tight">Images, GIFs, Archives, Markdown & Data</h2>
+          </div>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400 font-mono">Canvas2D • WebCodecs • JSZip • WebCrypto</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Studio Tool 1: Universal Image Converter -->
+          <button data-open-tool="img-convert" class="bento-card bento-interactive text-left bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark hover:shadow-bento-hover p-5 flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-11 h-11 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                </div>
+                <span class="font-mono text-[10px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">PNG / WEBP / JPG</span>
+              </div>
+              <h3 class="font-display font-bold text-base text-zinc-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Universal Image Converter & Resizer</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 leading-relaxed">Batch convert PNG, JPG, WebP, BMP, ICO & SVG with quality tuning, aspect-locked resizing, and live byte savings.</p>
+            </div>
+            <div class="mt-5 pt-3 border-t border-studio-border/60 dark:border-studio-darkBorder flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+              <span>Launch Workspace</span>
+              <span class="group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </button>
+
+          <!-- Studio Tool 2: Images to PDF Builder -->
+          <button data-open-tool="img-to-pdf" class="bento-card bento-interactive text-left bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark hover:shadow-bento-hover p-5 flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-11 h-11 rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <span class="font-mono text-[10px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">A4 / LETTER / FIT</span>
+              </div>
+              <h3 class="font-display font-bold text-base text-zinc-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">Images to PDF Builder</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 leading-relaxed">Assemble scans, receipts, or artwork into a multi-page PDF with A4, US Letter, or native image sizing & margins.</p>
+            </div>
+            <div class="mt-5 pt-3 border-t border-studio-border/60 dark:border-studio-darkBorder flex items-center justify-between text-xs font-semibold text-violet-600 dark:text-violet-400">
+              <span>Launch Workspace</span>
+              <span class="group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </button>
+
+          <!-- Studio Tool 3: GIF Frame Extractor & Sprite Sheet -->
+          <button data-open-tool="gif-studio" class="bento-card bento-interactive text-left bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark hover:shadow-bento-hover p-5 flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-11 h-11 rounded-2xl bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/></svg>
+                </div>
+                <span class="font-mono text-[10px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">FRAMES / SPRITE</span>
+              </div>
+              <h3 class="font-display font-bold text-base text-zinc-900 dark:text-white group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-400 transition-colors">GIF Extractor & Sprite Sheet</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 leading-relaxed">Deconstruct animated GIFs into individual PNG frames, download a ZIP pack, or stitch a horizontal sprite sheet.</p>
+            </div>
+            <div class="mt-5 pt-3 border-t border-studio-border/60 dark:border-studio-darkBorder flex items-center justify-between text-xs font-semibold text-fuchsia-600 dark:text-fuchsia-400">
+              <span>Launch Workspace</span>
+              <span class="group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </button>
+
+          <!-- Studio Tool 4: ZIP Archive Inspector & Creator -->
+          <button data-open-tool="zip-studio" class="bento-card bento-interactive text-left bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark hover:shadow-bento-hover p-5 flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+                </div>
+                <span class="font-mono text-[10px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">DEFLATE / TREE</span>
+              </div>
+              <h3 class="font-display font-bold text-base text-zinc-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">ZIP Archive Inspector & Creator</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 leading-relaxed">Browse .ZIP folder structures, preview text/images inline without extracting, or compress files into a new archive.</p>
+            </div>
+            <div class="mt-5 pt-3 border-t border-studio-border/60 dark:border-studio-darkBorder flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              <span>Launch Workspace</span>
+              <span class="group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </button>
+
+          <!-- Studio Tool 5: Markdown & Rich Document Studio -->
+          <button data-open-tool="md-studio" class="bento-card bento-interactive text-left bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark hover:shadow-bento-hover p-5 flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-11 h-11 rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </div>
+                <span class="font-mono text-[10px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">MD → PDF / HTML</span>
+              </div>
+              <h3 class="font-display font-bold text-base text-zinc-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">Markdown & Document Studio</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 leading-relaxed">Split-pane Markdown editor with live sanitized preview, word/read-time stats, and 1-click PDF/HTML export.</p>
+            </div>
+            <div class="mt-5 pt-3 border-t border-studio-border/60 dark:border-studio-darkBorder flex items-center justify-between text-xs font-semibold text-sky-600 dark:text-sky-400">
+              <span>Launch Workspace</span>
+              <span class="group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </button>
+
+          <!-- Studio Tool 6: Data, Base64 & Crypto Hash -->
+          <button data-open-tool="data-studio" class="bento-card bento-interactive text-left bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark hover:shadow-bento-hover p-5 flex flex-col justify-between group">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-11 h-11 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                </div>
+                <span class="font-mono text-[10px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">JSON / CSV / SHA</span>
+              </div>
+              <h3 class="font-display font-bold text-base text-zinc-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">Data, Base64 & Crypto Hash</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 leading-relaxed">Format JSON, convert JSON ↔ CSV with live table preview, encode Base64 URIs, and verify SHA-256/512 hashes.</p>
+            </div>
+            <div class="mt-5 pt-3 border-t border-studio-border/60 dark:border-studio-darkBorder flex items-center justify-between text-xs font-semibold text-teal-600 dark:text-teal-400">
+              <span>Launch Workspace</span>
+              <span class="group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 2: ACTIVE TOOL WORKSPACE CONTAINER (With Top Return Breadcrumb)  -->
+    <!-- ===================================================================== -->
+    <div id="activeWorkspaceShell" class="hidden space-y-5">
+
+      <!-- Workspace Breadcrumb & Quick Switcher -->
+      <div class="bento-card bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <button id="backToHubBtn" class="px-3.5 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-100 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+            <span>← All Tools</span>
+            <kbd class="hidden sm:inline font-mono text-[10px] px-1.5 py-0.5 rounded bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-zinc-500">ESC</kbd>
+          </button>
+          <div class="h-5 w-px bg-studio-border dark:bg-studio-darkBorder"></div>
+          <div>
+            <span id="workspaceSectionTag" class="font-mono text-[10px] font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block">SECTION A // PDF SUITE</span>
+            <h2 id="workspaceTitle" class="font-display font-bold text-sm sm:text-base text-zinc-900 dark:text-white">Tool Workspace</h2>
+          </div>
+        </div>
+
+        <!-- Quick Tool Jump Dropdown -->
+        <div class="flex items-center gap-2">
+          <label for="quickToolJump" class="text-xs text-zinc-500 hidden sm:inline">Switch Tool:</label>
+          <select id="quickToolJump" class="px-3 py-2 rounded-xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder text-xs font-semibold text-zinc-800 dark:text-zinc-100 focus:outline-none focus:border-indigo-500">
+            <optgroup label="Section A — PDF Suite">
+              <option value="pdf-merge">Merge & Organize PDFs</option>
+              <option value="pdf-to-img">PDF to High-DPI Images</option>
+              <option value="pdf-stamp">Watermark & Page Numbers</option>
+              <option value="pdf-meta">Metadata & Privacy Sanitizer</option>
+            </optgroup>
+            <optgroup label="Section B — All-Format & Docs Studio">
+              <option value="img-convert">Universal Image Converter & Resizer</option>
+              <option value="img-to-pdf">Images to PDF Builder</option>
+              <option value="gif-studio">GIF Extractor & Sprite Sheet</option>
+              <option value="zip-studio">ZIP Archive Inspector & Creator</option>
+              <option value="md-studio">Markdown & Document Studio</option>
+              <option value="data-studio">Data, Base64 & Crypto Hash</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- SECTION A WORKSPACE 1: MERGE & ORGANIZE PDFs                        -->
+      <!-- =================================================================== -->
+      <section id="tool-pdf-merge" class="tool-view hidden space-y-4">
+        <div class="bento-card bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark p-5 sm:p-6 space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-studio-border dark:border-studio-darkBorder">
+            <div>
+              <h3 class="font-display font-bold text-lg text-zinc-900 dark:text-white">Merge & Organize PDF Pages</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Load one or more PDFs, reorder pages visually, rotate 90°, or select specific ranges to extract.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="file" id="pdfMergeInput" accept="application/pdf" multiple class="hidden" />
+              <button onclick="document.getElementById('pdfMergeInput').click()" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-sm transition-colors">
+                + Add PDF Files
+              </button>
+              <button id="pdfMergeClearBtn" class="px-3.5 py-2.5 rounded-xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder text-xs font-semibold hover:border-zinc-400">
+                Clear All
+              </button>
+            </div>
+          </div>
+
+          <!-- Controls Bar -->
+          <div id="pdfMergeControls" class="hidden space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder">
+              <div class="space-y-1.5">
+                <span class="block font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Selection & Rotation</span>
+                <div class="flex flex-wrap gap-1.5">
+                  <button id="pdfSelectAllBtn" class="px-3 py-1.5 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs font-medium hover:border-indigo-500">Select All</button>
+                  <button id="pdfDeselectAllBtn" class="px-3 py-1.5 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs font-medium hover:border-indigo-500">Deselect</button>
+                  <button id="pdfRotateAllBtn" class="px-3 py-1.5 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs font-medium hover:border-indigo-500">Rotate All +90°</button>
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <label for="pdfRangeInput" class="block font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Filter by Page Range</label>
+                <div class="flex gap-1.5">
+                  <input id="pdfRangeInput" type="text" placeholder="e.g. 1-3, 5, 8-10" class="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs font-mono focus:outline-none focus:border-indigo-500" />
+                  <button id="pdfApplyRangeBtn" class="px-3 py-1.5 rounded-xl bg-zinc-900 dark:bg-indigo-600 text-white text-xs font-semibold shrink-0">Apply</button>
+                </div>
+              </div>
+
+              <div class="flex flex-col justify-end">
+                <div class="flex items-center justify-between text-xs font-mono text-zinc-600 dark:text-zinc-300 bg-white dark:bg-studio-darkSurface px-3 py-2 rounded-xl border border-studio-border dark:border-studio-darkBorder">
+                  <span>Selected: <strong id="pdfSelCount">0</strong> / <span id="pdfTotCount">0</span></span>
+                  <span id="pdfTotalBytes">0 B</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-end gap-2.5">
+              <button id="pdfDownloadSelectedBtn" class="px-4 py-2.5 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder hover:border-rose-500 text-xs font-semibold">
+                Export Selected Pages Only
+              </button>
+              <button id="pdfDownloadAllBtn" class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-sm">
+                Merge & Download Full PDF
+              </button>
+            </div>
+          </div>
+
+          <!-- Empty Drop State -->
+          <div id="pdfMergeEmpty" onclick="document.getElementById('pdfMergeInput').click()" class="rounded-2xl border-2 border-dashed border-studio-border dark:border-studio-darkBorder hover:border-rose-500 p-12 text-center cursor-pointer transition-colors">
+            <p class="font-display font-bold text-base text-zinc-800 dark:text-zinc-100">Drop PDF files here to inspect, reorder & merge</p>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">All page thumbnails render locally in memory with zero server uploads.</p>
+          </div>
+
+          <!-- Thumbnail Grid -->
+          <div id="pdfMergeGrid" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4"></div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- SECTION A WORKSPACE 2: PDF TO HIGH-DPI IMAGES                       -->
+      <!-- =================================================================== -->
+      <section id="tool-pdf-to-img" class="tool-view hidden space-y-4">
+        <div class="bento-card bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark p-5 sm:p-6 space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-studio-border dark:border-studio-darkBorder">
+            <div>
+              <h3 class="font-display font-bold text-lg text-zinc-900 dark:text-white">PDF to High-DPI Images</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Convert every page of a PDF into sharp PNG or JPEG images at 1x, 2x, or 3x scale.</p>
+            </div>
+            <div>
+              <input type="file" id="pdfRenderInput" accept="application/pdf" class="hidden" />
+              <button onclick="document.getElementById('pdfRenderInput').click()" class="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-sm">
+                Select PDF Document
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder">
+            <div>
+              <label for="pdfDpiSelect" class="block font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Resolution Scale</label>
+              <select id="pdfDpiSelect" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">
+                <option value="1">1.0x — Standard Screen (72 DPI)</option>
+                <option value="2" selected>2.0x — Retina Crisp (144 DPI)</option>
+                <option value="3">3.0x — Print Ultra-Sharp (216 DPI)</option>
+              </select>
+            </div>
+            <div>
+              <label for="pdfImgFmtSelect" class="block font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">Output Format</label>
+              <select id="pdfImgFmtSelect" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">
+                <option value="image/png">PNG (Lossless Text & Diagrams)</option>
+                <option value="image/jpeg">JPEG (Compact 92% Quality)</option>
+              </select>
+            </div>
+            <div class="flex items-end">
+              <button id="pdfRenderTriggerBtn" disabled class="w-full px-4 py-2 rounded-xl bg-zinc-900 dark:bg-indigo-600 disabled:opacity-40 text-white text-xs font-semibold">
+                Render All Pages
+              </button>
+            </div>
+          </div>
+
+          <div id="pdfRenderBar" class="hidden flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+            <span id="pdfRenderStats" class="font-mono text-xs font-semibold text-emerald-900 dark:text-emerald-300"></span>
+            <button id="pdfRenderDownloadZipBtn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">
+              Download All Pages (.ZIP)
+            </button>
+          </div>
+
+          <div id="pdfRenderEmpty" onclick="document.getElementById('pdfRenderInput').click()" class="rounded-2xl border-2 border-dashed border-studio-border dark:border-studio-darkBorder hover:border-amber-500 p-12 text-center cursor-pointer transition-colors">
+            <p class="font-display font-bold text-base text-zinc-800 dark:text-zinc-100">Drop a PDF to rasterize every page into images</p>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Supports individual page downloads or one-click ZIP bundling.</p>
+          </div>
+
+          <div id="pdfRenderGrid" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- SECTION A WORKSPACE 3: WATERMARK, STAMP & PAGE NUMBERS              -->
+      <!-- =================================================================== -->
+      <section id="tool-pdf-stamp" class="tool-view hidden space-y-4">
+        <div class="bento-card bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark p-5 sm:p-6 space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-studio-border dark:border-studio-darkBorder">
+            <div>
+              <h3 class="font-display font-bold text-lg text-zinc-900 dark:text-white">Watermark, Stamp & Page Numbering</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Add custom diagonal or header stamps, adjust opacity & font size, and append "Page X of Y" footers.</p>
+            </div>
+            <div>
+              <input type="file" id="pdfStampInput" accept="application/pdf" class="hidden" />
+              <button onclick="document.getElementById('pdfStampInput').click()" class="px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold shadow-sm">
+                Choose PDF File
+              </button>
+            </div>
+          </div>
+
+          <div id="pdfStampFileBanner" class="hidden px-4 py-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-between text-xs">
+            <span class="font-mono font-semibold text-orange-900 dark:text-orange-300" id="pdfStampFileName"></span>
+            <span class="font-mono text-orange-700 dark:text-orange-400" id="pdfStampFilePages"></span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="p-4 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder space-y-3">
+              <h4 class="font-display font-bold text-sm text-zinc-900 dark:text-white">1. Text Watermark / Stamp</h4>
+              <div>
+                <label for="stampText" class="block font-mono text-[10px] uppercase text-zinc-500 mb-1">Watermark Text (Leave blank for none)</label>
+                <input id="stampText" type="text" value="CONFIDENTIAL — INTERNAL USE" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs font-semibold" />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label for="stampPosition" class="block font-mono text-[10px] uppercase text-zinc-500 mb-1">Placement</label>
+                  <select id="stampPosition" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">
+                    <option value="diagonal" selected>Center Diagonal (35°)</option>
+                    <option value="top-header">Top Header Banner</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="stampColor" class="block font-mono text-[10px] uppercase text-zinc-500 mb-1">Ink Tone</label>
+                  <select id="stampColor" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">
+                    <option value="slate">Neutral Slate</option>
+                    <option value="crimson">Crimson Red</option>
+                    <option value="indigo">Cobalt Indigo</option>
+                  </select>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <div class="flex justify-between font-mono text-[10px] text-zinc-500 mb-1">
+                    <span>Opacity</span><span id="stampOpacityVal">28%</span>
+                  </div>
+                  <input id="stampOpacity" type="range" min="10" max="90" value="28" class="w-full" />
+                </div>
+                <div>
+                  <div class="flex justify-between font-mono text-[10px] text-zinc-500 mb-1">
+                    <span>Font Size</span><span id="stampSizeVal">42 pt</span>
+                  </div>
+                  <input id="stampSize" type="range" min="14" max="84" value="42" class="w-full" />
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <h4 class="font-display font-bold text-sm text-zinc-900 dark:text-white">2. Automatic Page Numbering</h4>
+                <label class="flex items-center gap-2.5 text-xs font-medium cursor-pointer">
+                  <input id="stampAddPageNums" type="checkbox" checked class="w-4 h-4 rounded text-indigo-600" />
+                  <span>Append footer page numbers to every page</span>
+                </label>
+                <div>
+                  <label for="stampNumFormat" class="block font-mono text-[10px] uppercase text-zinc-500 mb-1">Numbering Format</label>
+                  <select id="stampNumFormat" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">
+                    <option value="page-x-of-y" selected>Page 1 of N (Bottom Center)</option>
+                    <option value="x-slash-y">1 / N (Bottom Right)</option>
+                  </select>
+                </div>
+              </div>
+
+              <button id="pdfApplyStampBtn" disabled class="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:opacity-40 text-white text-xs font-semibold shadow-sm transition-colors">
+                Apply Stamp & Download PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- SECTION A WORKSPACE 4: PDF METADATA & PRIVACY SANITIZER             -->
+      <!-- =================================================================== -->
+      <section id="tool-pdf-meta" class="tool-view hidden space-y-4">
+        <div class="bento-card bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark p-5 sm:p-6 space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-studio-border dark:border-studio-darkBorder">
+            <div>
+              <h3 class="font-display font-bold text-lg text-zinc-900 dark:text-white">PDF Metadata & Privacy Sanitizer</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Inspect document properties, edit Title/Author/Keywords, or wipe all identifying metadata cleanly.</p>
+            </div>
+            <div>
+              <input type="file" id="pdfMetaInput" accept="application/pdf" class="hidden" />
+              <button onclick="document.getElementById('pdfMetaInput').click()" class="px-4 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-xs font-semibold shadow-sm">
+                Inspect PDF File
+              </button>
+            </div>
+          </div>
+
+          <div id="pdfMetaEmpty" onclick="document.getElementById('pdfMetaInput').click()" class="rounded-2xl border-2 border-dashed border-studio-border dark:border-studio-darkBorder hover:border-pink-500 p-12 text-center cursor-pointer transition-colors">
+            <p class="font-display font-bold text-base text-zinc-800 dark:text-zinc-100">Drop a PDF to inspect or scrub its internal metadata dictionary</p>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Reveals Author, Creator software, Producer, Creation Date, and exact page dimensions.</p>
+          </div>
+
+          <div id="pdfMetaEditor" class="hidden space-y-4">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div class="p-3.5 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder">
+                <span class="font-mono text-[10px] uppercase text-zinc-500 block">Page Count</span>
+                <strong id="metaStatPages" class="font-display text-lg text-zinc-900 dark:text-white">—</strong>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder">
+                <span class="font-mono text-[10px] uppercase text-zinc-500 block">Page 1 Size</span>
+                <strong id="metaStatDim" class="font-mono text-xs text-zinc-900 dark:text-white">—</strong>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder">
+                <span class="font-mono text-[10px] uppercase text-zinc-500 block">File Size</span>
+                <strong id="metaStatSize" class="font-mono text-sm text-zinc-900 dark:text-white">—</strong>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder">
+                <span class="font-mono text-[10px] uppercase text-zinc-500 block">Producer Engine</span>
+                <strong id="metaStatProducer" class="font-mono text-xs text-zinc-900 dark:text-white truncate block">—</strong>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder">
+              <div>
+                <label class="block font-mono text-[10px] uppercase text-zinc-500 mb-1">Title</label>
+                <input id="metaFieldTitle" type="text" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs" />
+              </div>
+              <div>
+                <label class="block font-mono text-[10px] uppercase text-zinc-500 mb-1">Author</label>
+                <input id="metaFieldAuthor" type="text" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs" />
+              </div>
+              <div>
+                <label class="block font-mono text-[10px] uppercase text-zinc-500 mb-1">Subject</label>
+                <input id="metaFieldSubject" type="text" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs" />
+              </div>
+              <div>
+                <label class="block font-mono text-[10px] uppercase text-zinc-500 mb-1">Keywords (comma separated)</label>
+                <input id="metaFieldKeywords" type="text" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs" />
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-end gap-2.5">
+              <button id="pdfMetaStripBtn" class="px-4 py-2.5 rounded-xl bg-rose-600/10 hover:bg-rose-600/20 text-rose-700 dark:text-rose-300 border border-rose-500/25 text-xs font-semibold">
+                Strip All Metadata & Download Clean PDF
+              </button>
+              <button id="pdfMetaSaveBtn" class="px-5 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-xs font-semibold shadow-sm">
+                Save Updated Metadata & Download
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- SECTION B WORKSPACE 1: UNIVERSAL IMAGE CONVERTER & RESIZER          -->
+      <!-- =================================================================== -->
+      <section id="tool-img-convert" class="tool-view hidden space-y-4">
+        <div class="bento-card bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark p-5 sm:p-6 space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-studio-border dark:border-studio-darkBorder">
+            <div>
+              <h3 class="font-display font-bold text-lg text-zinc-900 dark:text-white">Universal Image Converter & Resizer</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Batch convert PNG, JPG, WebP, BMP, ICO, or SVG with quality compression and aspect-ratio locked resizing.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="file" id="imgConvertInput" accept="image/*" multiple class="hidden" />
+              <button onclick="document.getElementById('imgConvertInput').click()" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm">
+                + Add Images
+              </button>
+              <button id="imgConvertClearBtn" class="px-3.5 py-2.5 rounded-xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder">
+            <div>
+              <label for="imgFmtOut" class="block font-mono text-[10px] font-semibold uppercase text-zinc-500 mb-1">Target Format</label>
+              <select id="imgFmtOut" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">
+                <option value="image/webp">WebP (Compact Modern)</option>
+                <option value="image/jpeg">JPEG (Universal Photo)</option>
+                <option value="image/png">PNG (Lossless Alpha)</option>
+              </select>
+            </div>
+            <div>
+              <div class="flex justify-between font-mono text-[10px] font-semibold uppercase text-zinc-500 mb-1">
+                <label for="imgQualRange">Quality</label>
+                <span id="imgQualText" class="text-indigo-600 dark:text-indigo-400">85%</span>
+              </div>
+              <input id="imgQualRange" type="range" min="10" max="100" value="85" class="w-full mt-2.5" />
+            </div>
+            <div>
+              <label for="imgMaxWInput" class="block font-mono text-[10px] font-semibold uppercase text-zinc-500 mb-1">Max Width (px, optional)</label>
+              <input id="imgMaxWInput" type="number" min="16" max="12000" placeholder="Keep original width" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs font-mono" />
+            </div>
+            <div class="flex items-end">
+              <button id="imgProcessAllBtn" class="w-full py-2 rounded-xl bg-zinc-900 dark:bg-indigo-600 hover:bg-indigo-600 text-white text-xs font-semibold transition-colors">
+                Convert All Images
+              </button>
+            </div>
+          </div>
+
+          <div id="imgConvertStatsBar" class="hidden flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+            <div class="flex flex-wrap items-center gap-3 font-mono text-xs">
+              <span>Files: <strong id="imgStatCount">0</strong></span>
+              <span>•</span>
+              <span>Before: <strong id="imgStatBefore">0 B</strong></span>
+              <span>→</span>
+              <span>After: <strong id="imgStatAfter">0 B</strong></span>
+              <span id="imgStatSavedBadge" class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold">0%</span>
+            </div>
+            <button id="imgDownloadAllZipBtn" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold">
+              Download Batch (.ZIP)
+            </button>
+          </div>
+
+          <div id="imgConvertEmpty" onclick="document.getElementById('imgConvertInput').click()" class="rounded-2xl border-2 border-dashed border-studio-border dark:border-studio-darkBorder hover:border-indigo-500 p-12 text-center cursor-pointer transition-colors">
+            <p class="font-display font-bold text-base text-zinc-800 dark:text-zinc-100">Drop PNG, JPG, WebP, BMP, ICO, or SVG images here</p>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Instant browser-side conversion with real-time compression savings telemetry.</p>
+          </div>
+
+          <div id="imgConvertGrid" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3.5"></div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- SECTION B WORKSPACE 2: IMAGES TO PDF BUILDER                        -->
+      <!-- =================================================================== -->
+      <section id="tool-img-to-pdf" class="tool-view hidden space-y-4">
+        <div class="bento-card bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark p-5 sm:p-6 space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-studio-border dark:border-studio-darkBorder">
+            <div>
+              <h3 class="font-display font-bold text-lg text-zinc-900 dark:text-white">Images to PDF Document Builder</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Combine multiple photos or scans into a clean multi-page PDF with page sizing and margins.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="file" id="imgToPdfInput" accept="image/*" multiple class="hidden" />
+              <button onclick="document.getElementById('imgToPdfInput').click()" class="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-sm">
+                + Add Images
+              </button>
+              <button id="imgToPdfClearBtn" class="px-3.5 py-2.5 rounded-xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder">
+            <div>
+              <label for="pdfPagePreset" class="block font-mono text-[10px] font-semibold uppercase text-zinc-500 mb-1">Page Dimensions</label>
+              <select id="pdfPagePreset" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">
+                <option value="a4" selected>A4 Portrait (595 × 842 pt)</option>
+                <option value="letter">US Letter (612 × 792 pt)</option>
+                <option value="fit">Fit to Native Image Size</option>
+              </select>
+            </div>
+            <div>
+              <label for="pdfPageMargin" class="block font-mono text-[10px] font-semibold uppercase text-zinc-500 mb-1">Page Margin</label>
+              <select id="pdfPageMargin" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">
+                <option value="0">0 pt (Full Bleed)</option>
+                <option value="24" selected>24 pt (Clean Border)</option>
+                <option value="48">48 pt (Wide Frame)</option>
+              </select>
+            </div>
+            <div class="flex items-end">
+              <button id="imgToPdfGenerateBtn" disabled class="w-full py-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-xs font-semibold">
+                Generate & Download PDF
+              </button>
+            </div>
+          </div>
+
+          <div id="imgToPdfEmpty" onclick="document.getElementById('imgToPdfInput').click()" class="rounded-2xl border-2 border-dashed border-studio-border dark:border-studio-darkBorder hover:border-violet-500 p-12 text-center cursor-pointer transition-colors">
+            <p class="font-display font-bold text-base text-zinc-800 dark:text-zinc-100">Drop images in sequence to compile a multi-page PDF</p>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Reorder slides before exporting.</p>
+          </div>
+
+          <div id="imgToPdfList" class="hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3.5"></div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- SECTION B WORKSPACE 3: GIF FRAME EXTRACTOR & SPRITE SHEET           -->
+      <!-- =================================================================== -->
+      <section id="tool-gif-studio" class="tool-view hidden space-y-4">
+        <div class="bento-card bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark p-5 sm:p-6 space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-studio-border dark:border-studio-darkBorder">
+            <div>
+              <h3 class="font-display font-bold text-lg text-zinc-900 dark:text-white">Animated GIF Frame Extractor & Sprite Sheet</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Inspect every frame of an animated GIF, download individual PNGs, export a ZIP, or stitch a horizontal sprite sheet.</p>
+            </div>
+            <div>
+              <input type="file" id="gifStudioInput" accept="image/gif" class="hidden" />
+              <button onclick="document.getElementById('gifStudioInput').click()" class="px-4 py-2.5 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-xs font-semibold shadow-sm">
+                Select Animated .GIF
+              </button>
+            </div>
+          </div>
+
+          <div id="gifActionBar" class="hidden flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-500/20">
+            <span id="gifStatsLabel" class="font-mono text-xs font-semibold text-fuchsia-900 dark:text-fuchsia-300"></span>
+            <div class="flex flex-wrap items-center gap-2">
+              <button id="gifSpriteSheetBtn" class="px-3.5 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder hover:border-fuchsia-500 text-xs font-semibold">
+                Stitch Horizontal Sprite Sheet (.PNG)
+              </button>
+              <button id="gifZipAllBtn" class="px-4 py-2 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-xs font-semibold">
+                Download All Frames (.ZIP)
+              </button>
+            </div>
+          </div>
+
+          <div id="gifEmpty" onclick="document.getElementById('gifStudioInput').click()" class="rounded-2xl border-2 border-dashed border-studio-border dark:border-studio-darkBorder hover:border-fuchsia-500 p-12 text-center cursor-pointer transition-colors">
+            <p class="font-display font-bold text-base text-zinc-800 dark:text-zinc-100">Drop an animated .GIF file to extract frames</p>
+            <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Uses hardware-accelerated browser ImageDecoder API with automatic fallback.</p>
+          </div>
+
+          <div id="gifFramesGrid" class="hidden grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-3 max-h-[460px] overflow-y-auto p-1"></div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- SECTION B WORKSPACE 4: ZIP ARCHIVE INSPECTOR & CREATOR              -->
+      <!-- =================================================================== -->
+      <section id="tool-zip-studio" class="tool-view hidden space-y-4">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <!-- Left Card: Inspector -->
+          <div class="bento-card bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark p-5 sm:p-6 flex flex-col space-y-4">
+            <div class="flex items-center justify-between gap-2 pb-3 border-b border-studio-border dark:border-studio-darkBorder">
+              <div>
+                <h3 class="font-display font-bold text-base text-zinc-900 dark:text-white">ZIP Archive Inspector</h3>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">Browse folder tree, preview code/images inline, or extract single files.</p>
+              </div>
+              <div>
+                <input type="file" id="zipInspectInput" accept=".zip,application/zip" class="hidden" />
+                <button onclick="document.getElementById('zipInspectInput').click()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">
+                  Open .ZIP
+                </button>
+              </div>
+            </div>
+
+            <div id="zipInspectMeta" class="hidden px-3.5 py-2.5 rounded-xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder flex items-center justify-between font-mono text-xs">
+              <span id="zipNameLabel" class="font-semibold truncate"></span>
+              <span id="zipInfoLabel" class="text-zinc-500"></span>
+            </div>
+
+            <div id="zipInspectEmpty" onclick="document.getElementById('zipInspectInput').click()" class="flex-1 rounded-2xl border-2 border-dashed border-studio-border dark:border-studio-darkBorder hover:border-emerald-500 p-10 text-center flex flex-col items-center justify-center cursor-pointer">
+              <p class="font-display font-bold text-sm text-zinc-800 dark:text-zinc-100">Drop a .ZIP archive here to inspect contents</p>
+              <p class="text-xs text-zinc-500 mt-1">Zero disk clutter—extract only what you need.</p>
+            </div>
+
+            <div id="zipTreeList" class="hidden rounded-2xl border border-studio-border dark:border-studio-darkBorder divide-y divide-studio-border dark:divide-studio-darkBorder max-h-80 overflow-y-auto"></div>
+
+            <div id="zipInlinePreview" class="hidden rounded-2xl border border-studio-border dark:border-studio-darkBorder bg-studio-subtle dark:bg-studio-darkSubtle p-3.5 space-y-2">
+              <div class="flex items-center justify-between border-b border-studio-border dark:border-studio-darkBorder pb-2">
+                <span id="zipPreviewName" class="font-mono text-xs font-semibold truncate"></span>
+                <button onclick="document.getElementById('zipInlinePreview').classList.add('hidden')" class="font-mono text-[10px] text-zinc-500 hover:text-zinc-900 dark:hover:text-white">CLOSE</button>
+              </div>
+              <div id="zipPreviewBody" class="max-h-52 overflow-auto font-mono text-xs"></div>
+            </div>
+          </div>
+
+          <!-- Right Card: Creator -->
+          <div class="bento-card bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark p-5 sm:p-6 flex flex-col space-y-4">
+            <div class="flex items-center justify-between gap-2 pb-3 border-b border-studio-border dark:border-studio-darkBorder">
+              <div>
+                <h3 class="font-display font-bold text-base text-zinc-900 dark:text-white">ZIP Archive Creator</h3>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">Bundle any files into a DEFLATE-compressed .ZIP package.</p>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <input type="file" id="zipCreateInput" multiple class="hidden" />
+                <button onclick="document.getElementById('zipCreateInput').click()" class="px-3.5 py-2 rounded-xl bg-zinc-900 dark:bg-indigo-600 text-white text-xs font-semibold">
+                  + Add Files
+                </button>
+                <button id="zipCreateClearBtn" class="px-3 py-2 rounded-xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-mono text-[10px] uppercase text-zinc-500 mb-1">Output Filename</label>
+                <input id="zipOutName" type="text" value="alltoolkit-bundle.zip" class="w-full px-3 py-2 rounded-xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder text-xs font-mono" />
+              </div>
+              <div>
+                <label class="block font-mono text-[10px] uppercase text-zinc-500 mb-1">DEFLATE Compression</label>
+                <select id="zipDeflateLevel" class="w-full px-3 py-2 rounded-xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">
+                  <option value="6" selected>Level 6 — Balanced</option>
+                  <option value="9">Level 9 — Maximum</option>
+                  <option value="1">Level 1 — Fastest</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="zipCreateEmpty" onclick="document.getElementById('zipCreateInput').click()" class="flex-1 rounded-2xl border-2 border-dashed border-studio-border dark:border-studio-darkBorder hover:border-indigo-500 p-10 text-center flex flex-col items-center justify-center cursor-pointer">
+              <p class="font-display font-bold text-sm text-zinc-800 dark:text-zinc-100">Drop any files here to stage for ZIP compression</p>
+              <p class="text-xs text-zinc-500 mt-1">PDFs, images, spreadsheets, or code files.</p>
+            </div>
+
+            <div id="zipCreateList" class="hidden rounded-2xl border border-studio-border dark:border-studio-darkBorder divide-y divide-studio-border dark:divide-studio-darkBorder max-h-60 overflow-y-auto"></div>
+
+            <div id="zipCreateFooter" class="hidden pt-3 border-t border-studio-border dark:border-studio-darkBorder flex items-center justify-between gap-2">
+              <span class="font-mono text-xs text-zinc-600 dark:text-zinc-300">Staged: <strong id="zipStagedStat">0 files</strong></span>
+              <button id="zipBuildDownloadBtn" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm">
+                Compress & Download .ZIP
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- SECTION B WORKSPACE 5: MARKDOWN & RICH DOCUMENT STUDIO              -->
+      <!-- =================================================================== -->
+      <section id="tool-md-studio" class="tool-view hidden space-y-4">
+        <div class="bento-card bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark p-5 sm:p-6 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-studio-border dark:border-studio-darkBorder">
+            <div>
+              <h3 class="font-display font-bold text-lg text-zinc-900 dark:text-white">Markdown & Rich Document Studio</h3>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Write Markdown with live sanitized preview, reading-time metrics, and 1-click export to PDF, HTML, or .MD.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <input type="file" id="mdFileLoadInput" accept=".md,.markdown,.txt" class="hidden" />
+              <button onclick="document.getElementById('mdFileLoadInput').click()" class="px-3 py-2 rounded-xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">
+                Load .MD
+              </button>
+              <button id="mdExportMdBtn" class="px-3 py-2 rounded-xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">
+                Save .MD
+              </button>
+              <button id="mdExportHtmlBtn" class="px-3 py-2 rounded-xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">
+                Export .HTML
+              </button>
+              <button id="mdExportPdfBtn" class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold shadow-sm">
+                Export .PDF
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="flex flex-col space-y-1.5">
+              <div class="flex items-center justify-between font-mono text-[11px] text-zinc-500">
+                <span>MARKDOWN EDITOR</span>
+                <span id="mdWordStats">0 words • 1 min read</span>
+              </div>
+              <textarea id="mdTextarea" rows="15" class="w-full p-4 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder font-mono text-xs leading-relaxed focus:outline-none focus:border-sky-500"># Alltoolkit Architecture Note
+
+## Zero-Upload Guarantee
+Every transformation runs strictly inside your browser's local sandbox:
+
+- **PDF Engine**: Powered by `pdf-lib` and `pdf.js` WebAssembly/Canvas workers.
+- **Image Pipeline**: Native `Canvas2D` and `ImageDecoder` hardware acceleration.
+- **Cryptographic Hashing**: Native Web Crypto API (`crypto.subtle.digest`).
+
+| Format | Supported Operations | Local Speed |
+| :--- | :--- | :--- |
+| PDF | Merge, Split, Rotate, Watermark, Rasterize | Instant |
+| Images | WebP, PNG, JPEG, GIF Sprite Sheets | Instant |
+| Archives | ZIP Inspection & DEFLATE Compression | Instant |</textarea>
+            </div>
+
+            <div class="flex flex-col space-y-1.5">
+              <div class="flex items-center justify-between font-mono text-[11px] text-zinc-500">
+                <span>LIVE SANITIZED PREVIEW</span>
+                <span class="text-emerald-600 dark:text-emerald-400">DOMPurify Protected</span>
+              </div>
+              <div id="mdPreviewPane" class="flex-1 p-5 rounded-2xl bg-studio-subtle/60 dark:bg-studio-darkSubtle/60 border border-studio-border dark:border-studio-darkBorder overflow-y-auto max-h-[370px] text-xs leading-relaxed space-y-3"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- SECTION B WORKSPACE 6: DATA, BASE64 & CRYPTO HASH                   -->
+      <!-- =================================================================== -->
+      <section id="tool-data-studio" class="tool-view hidden space-y-4">
+        <div class="bento-card bg-studio-surface dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder shadow-bento dark:shadow-bento-dark p-5 sm:p-6 space-y-5">
+          <!-- Sub-tabs -->
+          <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-studio-border dark:border-studio-darkBorder">
+            <div class="flex flex-wrap gap-1.5">
+              <button data-data-tab="json-csv" class="data-subtab px-3.5 py-2 rounded-xl text-xs font-semibold bg-teal-600 text-white">JSON ↔ CSV & Table</button>
+              <button data-data-tab="base64" class="data-subtab px-3.5 py-2 rounded-xl text-xs font-semibold bg-studio-subtle dark:bg-studio-darkSubtle text-zinc-700 dark:text-zinc-300">Base64 File & Text Codec</button>
+              <button data-data-tab="crypto-hash" class="data-subtab px-3.5 py-2 rounded-xl text-xs font-semibold bg-studio-subtle dark:bg-studio-darkSubtle text-zinc-700 dark:text-zinc-300">SHA-256 / SHA-512 Hash</button>
+            </div>
+          </div>
+
+          <!-- Sub-view 1: JSON <-> CSV -->
+          <div id="data-view-json-csv" class="data-subview space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex flex-wrap gap-1.5">
+                <button id="btnJsonPretty" class="px-3 py-1.5 rounded-xl bg-zinc-900 dark:bg-indigo-600 text-white text-xs font-semibold">Format JSON</button>
+                <button id="btnJsonMin" class="px-3 py-1.5 rounded-xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">Minify JSON</button>
+                <button id="btnJsonToCsv" class="px-3 py-1.5 rounded-xl bg-teal-600 text-white text-xs font-semibold">JSON → CSV</button>
+                <button id="btnCsvToJson" class="px-3 py-1.5 rounded-xl bg-teal-600 text-white text-xs font-semibold">CSV → JSON</button>
+              </div>
+              <div class="flex gap-1.5">
+                <button id="btnDataCopy" class="px-3 py-1.5 rounded-xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder text-xs font-semibold">Copy</button>
+                <button id="btnDataDownload" class="px-3 py-1.5 rounded-xl bg-zinc-900 dark:bg-indigo-600 text-white text-xs font-semibold">Download</button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <label class="block font-mono text-[10px] uppercase text-zinc-500 mb-1">Input Payload</label>
+                <textarea id="dataInBox" rows="11" class="w-full p-3.5 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder font-mono text-xs focus:outline-none focus:border-teal-500">[
+  {"id": 1, "file": "Annual_Report.pdf", "pages": 24, "local": true},
+  {"id": 2, "file": "Hero_Banner.webp", "pages": 1, "local": true},
+  {"id": 3, "file": "Source_Bundle.zip", "pages": 0, "local": true}
+]</textarea>
+              </div>
+              <div>
+                <label class="block font-mono text-[10px] uppercase text-zinc-500 mb-1">Transformed Result</label>
+                <textarea id="dataOutBox" rows="11" readonly class="w-full p-3.5 rounded-2xl bg-studio-subtle/60 dark:bg-studio-darkSubtle/60 border border-studio-border dark:border-studio-darkBorder font-mono text-xs"></textarea>
+              </div>
+            </div>
+
+            <!-- Live Table Preview -->
+            <div id="dataTableWrapper" class="hidden rounded-2xl border border-studio-border dark:border-studio-darkBorder overflow-x-auto max-h-60">
+              <table id="dataPreviewTable" class="w-full text-left border-collapse text-xs font-mono"></table>
+            </div>
+          </div>
+
+          <!-- Sub-view 2: Base64 Codec -->
+          <div id="data-view-base64" class="data-subview hidden grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="p-4 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="font-display font-bold text-sm">Encode File or Text → Base64</span>
+                <div>
+                  <input type="file" id="b64EncodeFile" class="hidden" />
+                  <button onclick="document.getElementById('b64EncodeFile').click()" class="px-3 py-1.5 rounded-xl bg-teal-600 text-white text-xs font-semibold">Pick File</button>
+                </div>
+              </div>
+              <textarea id="b64TextSource" rows="4" placeholder="Or type UTF-8 text to encode..." class="w-full p-3 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder font-mono text-xs"></textarea>
+              <div class="flex items-center justify-between text-xs">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input id="b64DataUriCheck" type="checkbox" checked class="rounded text-teal-600" />
+                  <span>Include <code>data:...;base64,</code> prefix</span>
+                </label>
+                <button id="b64CopyBtn" class="px-3 py-1 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder font-semibold">Copy</button>
+              </div>
+              <textarea id="b64EncodedBox" rows="5" readonly placeholder="Base64 string output..." class="w-full p-3 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder font-mono text-[11px] break-all"></textarea>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder space-y-3">
+              <span class="block font-display font-bold text-sm">Decode Base64 / Data URI → Binary File</span>
+              <textarea id="b64DecodeBox" rows="7" placeholder="Paste raw Base64 or data:application/pdf;base64,..." class="w-full p-3 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder font-mono text-[11px] break-all"></textarea>
+              <div class="flex items-center gap-2">
+                <input id="b64OutFilename" type="text" value="decoded-output.bin" class="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder font-mono text-xs" />
+                <button id="b64DecodeBtn" class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold">Decode & Download</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sub-view 3: Web Crypto SHA-256 / SHA-512 Hasher -->
+          <div id="data-view-crypto-hash" class="data-subview hidden space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="p-4 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="font-display font-bold text-sm">Hash Any File or Text (Web Crypto API)</span>
+                  <div>
+                    <input type="file" id="hashFileInput" class="hidden" />
+                    <button onclick="document.getElementById('hashFileInput').click()" class="px-3 py-1.5 rounded-xl bg-teal-600 text-white text-xs font-semibold">Hash File</button>
+                  </div>
+                </div>
+                <textarea id="hashTextInput" rows="5" placeholder="Type or paste text to compute real-time SHA-256 & SHA-512 digests..." class="w-full p-3 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder font-mono text-xs"></textarea>
+                <p id="hashSourceInfo" class="font-mono text-[11px] text-zinc-500">Ready — hardware-accelerated subtle crypto.</p>
+              </div>
+
+              <div class="p-4 rounded-2xl bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder space-y-3">
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="font-mono text-[10px] font-semibold uppercase text-zinc-500">SHA-256 Digest</span>
+                    <button onclick="copyText(document.getElementById('sha256Out').value)" class="font-mono text-[10px] text-teal-600 dark:text-teal-400 hover:underline">COPY</button>
+                  </div>
+                  <input id="sha256Out" type="text" readonly placeholder="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder font-mono text-[11px]" />
+                </div>
+
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="font-mono text-[10px] font-semibold uppercase text-zinc-500">SHA-512 Digest</span>
+                    <button onclick="copyText(document.getElementById('sha512Out').value)" class="font-mono text-[10px] text-teal-600 dark:text-teal-400 hover:underline">COPY</button>
+                  </div>
+                  <textarea id="sha512Out" rows="2" readonly class="w-full p-2.5 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder font-mono text-[10px] break-all"></textarea>
+                </div>
+
+                <div class="pt-1">
+                  <label class="block font-mono text-[10px] font-semibold uppercase text-zinc-500 mb-1">Verify Expected Checksum (Paste to Compare)</label>
+                  <input id="hashCompareInput" type="text" placeholder="Paste expected SHA-256 or SHA-512 hash..." class="w-full px-3 py-2 rounded-xl bg-white dark:bg-studio-darkSurface border border-studio-border dark:border-studio-darkBorder font-mono text-[11px]" />
+                  <p id="hashMatchBadge" class="mt-1.5 font-mono text-xs font-semibold"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ======================================================================= -->
+  <!-- FOOTER                                                                  -->
+  <!-- ======================================================================= -->
+  <footer class="border-t border-studio-border dark:border-studio-darkBorder bg-studio-surface/70 dark:bg-studio-darkSurface/70 mt-auto">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+      <div class="flex items-center gap-2 font-display font-semibold text-zinc-700 dark:text-zinc-200">
+        <span>Alltoolkit</span>
+        <span class="text-zinc-300 dark:text-zinc-700">•</span>
+        <span class="font-normal text-zinc-500">Warm Tactile Document & Media Studio</span>
+      </div>
+      <div class="font-mono text-[11px]">
+        Zero Uploads • No Cookies • 100% Browser RAM Execution
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- CLIENT-SIDE ENGINE SCRIPT                                                 -->
+  <!-- ========================================================================= -->
+  <script>
+    // Configure PDF.js Worker
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    // -------------------------------------------------------------------------
+    // 1. CORE HELPERS (Theme, Toasts, Downloads, Clipboard, Byte Formatting)
+    // -------------------------------------------------------------------------
+    const htmlEl = document.documentElement;
+    document.getElementById('themeToggleBtn').addEventListener('click', () => {
+      const isDark = htmlEl.classList.toggle('dark');
+      htmlEl.classList.toggle('light', !isDark);
+    });
+
+    function formatBytes(bytes) {
+      if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+      const units = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+      return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    }
+
+    function copyText(text) {
+      if (!text) return;
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast('Copied to clipboard', 'success');
+      } catch (e) {
+        showToast('Clipboard permission blocked', 'error');
+      }
+      document.body.removeChild(ta);
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const colors = {
+        success: 'bg-emerald-600 text-white border-emerald-500',
+        error: 'bg-rose-600 text-white border-rose-500',
+        info: 'bg-zinc-900 dark:bg-indigo-600 text-white border-zinc-800 dark:border-indigo-500'
+      };
+      toast.className = `pointer-events-auto px-4 py-3 rounded-2xl border shadow-lg text-xs font-semibold flex items-center justify-between gap-3 transition-all transform translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+      toast.innerHTML = `<span>${message}</span><button class="opacity-75 hover:opacity-100 font-mono text-[10px]">✕</button>`;
+      toast.querySelector('button').onclick = () => toast.remove();
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 250);
+      }, 4200);
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. NAVIGATION, SECTION FILTERING & SMART UNIVERSAL FILE ROUTER
+    // -------------------------------------------------------------------------
+    const TOOL_META = {
+      'pdf-merge': { section: 'SECTION A // PDF SUITE', title: 'Merge & Organize PDFs' },
+      'pdf-to-img': { section: 'SECTION A // PDF SUITE', title: 'PDF to High-DPI Images' },
+      'pdf-stamp': { section: 'SECTION A // PDF SUITE', title: 'Watermark, Stamp & Page Numbers' },
+      'pdf-meta': { section: 'SECTION A // PDF SUITE', title: 'PDF Metadata & Privacy Sanitizer' },
+      'img-convert': { section: 'SECTION B // ALL-FORMAT & DOCS STUDIO', title: 'Universal Image Converter & Resizer' },
+      'img-to-pdf': { section: 'SECTION B // ALL-FORMAT & DOCS STUDIO', title: 'Images to PDF Builder' },
+      'gif-studio': { section: 'SECTION B // ALL-FORMAT & DOCS STUDIO', title: 'GIF Frame Extractor & Sprite Sheet' },
+      'zip-studio': { section: 'SECTION B // ALL-FORMAT & DOCS STUDIO', title: 'ZIP Archive Inspector & Creator' },
+      'md-studio': { section: 'SECTION B // ALL-FORMAT & DOCS STUDIO', title: 'Markdown & Rich Document Studio' },
+      'data-studio': { section: 'SECTION B // ALL-FORMAT & DOCS STUDIO', title: 'Data, Base64 & Crypto Hash' }
+    };
+
+    function openToolWorkspace(toolId) {
+      if (!TOOL_META[toolId]) return;
+      document.getElementById('hubDashboard').classList.add('hidden');
+      document.getElementById('activeWorkspaceShell').classList.remove('hidden');
+
+      document.querySelectorAll('.tool-view').forEach(v => v.classList.add('hidden'));
+      document.getElementById(`tool-${toolId}`).classList.remove('hidden');
+
+      document.getElementById('workspaceSectionTag').textContent = TOOL_META[toolId].section;
+      document.getElementById('workspaceTitle').textContent = TOOL_META[toolId].title;
+      document.getElementById('quickToolJump').value = toolId;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function returnToHub() {
+      document.getElementById('activeWorkspaceShell').classList.add('hidden');
+      document.getElementById('hubDashboard').classList.remove('hidden');
+    }
+
+    document.getElementById('brandHomeBtn').addEventListener('click', returnToHub);
+    document.getElementById('backToHubBtn').addEventListener('click', returnToHub);
+    document.getElementById('quickToolJump').addEventListener('change', (e) => openToolWorkspace(e.target.value));
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !document.getElementById('activeWorkspaceShell').classList.contains('hidden')) {
+        returnToHub();
+      }
+    });
+
+    document.querySelectorAll('[data-open-tool]').forEach(btn => {
+      btn.addEventListener('click', () => openToolWorkspace(btn.dataset.openTool));
+    });
+
+    // Hub Section Filter Tabs (All Tools / Section A PDF Suite / Section B Studio)
+    document.querySelectorAll('.hub-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        returnToHub();
+        const filter = tab.dataset.hubFilter;
+        document.querySelectorAll('.hub-tab').forEach(t => {
+          const match = t.dataset.hubFilter === filter;
+          t.classList.toggle('bg-zinc-900', match);
+          t.classList.toggle('text-white', match);
+          t.classList.toggle('dark:bg-indigo-600', match);
+        });
+
+        const secPdf = document.getElementById('section-pdf-suite');
+        const secStudio = document.getElementById('section-studio-suite');
+        if (filter === 'pdf') {
+          secPdf.classList.remove('hidden');
+          secStudio.classList.add('hidden');
+        } else if (filter === 'studio') {
+          secPdf.classList.add('hidden');
+          secStudio.classList.remove('hidden');
+        } else {
+          secPdf.classList.remove('hidden');
+          secStudio.classList.remove('hidden');
+        }
+      });
+    });
+
+    // Universal Smart Dropzone Router
+    async function smartRouteFiles(fileList) {
+      const files = Array.from(fileList || []);
+      if (!files.length) return;
+      const first = files[0];
+      const name = first.name.toLowerCase();
+
+      if (first.type === 'application/pdf' || name.endsWith('.pdf')) {
+        openToolWorkspace('pdf-merge');
+        await loadPdfMergeFiles(files.filter(f => f.name.toLowerCase().endsWith('.pdf')));
+      } else if (first.type === 'image/gif' || name.endsWith('.gif')) {
+        openToolWorkspace('gif-studio');
+        await loadGifFile(first);
+      } else if (first.type.startsWith('image/') || /\.(png|jpe?g|webp|bmp|ico|svg)$/i.test(name)) {
+        openToolWorkspace('img-convert');
+        await loadConvertImages(files.filter(f => f.type.startsWith('image/')));
+      } else if (name.endsWith('.zip')) {
+        openToolWorkspace('zip-studio');
+        await inspectZipArchive(first);
+      } else if (/\.(md|markdown|txt)$/i.test(name)) {
+        openToolWorkspace('md-studio');
+        document.getElementById('mdTextarea').value = await first.text();
+        refreshMarkdownPreview();
+        showToast(`Loaded "${first.name}" into Markdown Studio`, 'success');
+      } else if (/\.(json|csv)$/i.test(name)) {
+        openToolWorkspace('data-studio');
+        document.getElementById('dataInBox').value = await first.text();
+        showToast(`Loaded "${first.name}" into Data Studio`, 'success');
+      } else {
+        openToolWorkspace('zip-studio');
+        stageZipFiles(files);
+        showToast(`Staged ${files.length} file(s) in ZIP Creator`, 'info');
+      }
+    }
+
+    const heroDrop = document.getElementById('smartHeroDropzone');
+    const heroInput = document.getElementById('smartHeroInput');
+    heroDrop.addEventListener('click', () => heroInput.click());
+    heroInput.addEventListener('change', (e) => {
+      smartRouteFiles(e.target.files);
+      e.target.value = '';
+    });
+
+    ['dragenter', 'dragover'].forEach(ev => {
+      document.body.addEventListener(ev, (e) => {
+        e.preventDefault();
+        heroDrop.classList.add('drop-zone-active');
+      });
+    });
+    ['dragleave', 'drop'].forEach(ev => {
+      document.body.addEventListener(ev, (e) => {
+        e.preventDefault();
+        if (ev === 'drop') {
+          heroDrop.classList.remove('drop-zone-active');
+          if (e.dataTransfer?.files?.length) smartRouteFiles(e.dataTransfer.files);
+        }
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // 3. SECTION A — TOOL 1: MERGE & ORGANIZE PDFs
+    // -------------------------------------------------------------------------
+    const pdfMergeState = { sources: [], pages: [] };
+
+    document.getElementById('pdfMergeInput').addEventListener('change', (e) => {
+      loadPdfMergeFiles(Array.from(e.target.files));
+      e.target.value = '';
+    });
+
+    document.getElementById('pdfMergeClearBtn').addEventListener('click', () => {
+      pdfMergeState.sources = [];
+      pdfMergeState.pages = [];
+      renderPdfMergeGrid();
+    });
+
+    async function loadPdfMergeFiles(files) {
+      if (!files.length) return;
+      showToast(`Parsing ${files.length} PDF file(s)...`, 'info');
+
+      for (const file of files) {
+        try {
+          const buf = await file.arrayBuffer();
+          const pdfLibDoc = await PDFLib.PDFDocument.load(buf.slice(0));
+          const pdfJsDoc = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
+          const srcId = 'src_' + Math.random().toString(36).slice(2, 8);
+
+          pdfMergeState.sources.push({ id: srcId, name: file.name, size: file.size, pdfLibDoc });
+
+          for (let i = 1; i <= pdfJsDoc.numPages; i++) {
+            const page = await pdfJsDoc.getPage(i);
+            const vp = page.getViewport({ scale: 0.4 });
+            const canvas = document.createElement('canvas');
+            canvas.width = vp.width;
+            canvas.height = vp.height;
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+
+            pdfMergeState.pages.push({
+              srcId,
+              srcName: file.name,
+              pageIndex: i - 1,
+              rotation: 0,
+              selected: true,
+              thumb: canvas.toDataURL('image/jpeg', 0.78)
+            });
+          }
+        } catch (err) {
+          showToast(`Could not open "${file.name}" (may be encrypted)`, 'error');
+        }
+      }
+      renderPdfMergeGrid();
+      showToast(`Loaded ${pdfMergeState.pages.length} total PDF pages`, 'success');
+    }
+
+    function renderPdfMergeGrid() {
+      const grid = document.getElementById('pdfMergeGrid');
+      const empty = document.getElementById('pdfMergeEmpty');
+      const controls = document.getElementById('pdfMergeControls');
+
+      if (!pdfMergeState.pages.length) {
+        grid.classList.add('hidden');
+        controls.classList.add('hidden');
+        empty.classList.remove('hidden');
+        return;
+      }
+
+      empty.classList.add('hidden');
+      controls.classList.remove('hidden');
+      grid.classList.remove('hidden');
+      grid.innerHTML = '';
+
+      pdfMergeState.pages.forEach((pg, idx) => {
+        const card = document.createElement('div');
+        card.className = `rounded-2xl border p-3 flex flex-col justify-between transition-all bg-studio-subtle dark:bg-studio-darkSubtle ${
+          pg.selected ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-studio-border dark:border-studio-darkBorder opacity-60'
+        }`;
+        card.innerHTML = `
+          <div class="flex items-center justify-between gap-1 mb-2">
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" ${pg.selected ? 'checked' : ''} class="pg-cb rounded text-rose-600" />
+              <span class="font-mono text-xs font-bold">#${idx + 1}</span>
+            </label>
+            <span class="font-mono text-[10px] text-zinc-400 truncate max-w-[90px]" title="${pg.srcName}">${pg.srcName}</span>
+          </div>
+          <div class="relative h-40 rounded-xl bg-white dark:bg-zinc-900 border border-studio-border dark:border-studio-darkBorder flex items-center justify-center overflow-hidden p-2">
+            <img src="${pg.thumb}" class="max-h-full max-w-full object-contain shadow-sm transition-transform" style="transform:rotate(${pg.rotation}deg)" />
+            <span class="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-zinc-900/80 text-white font-mono text-[9px]">p.${pg.pageIndex + 1}${pg.rotation ? ` • ${pg.rotation}°` : ''}</span>
+          </div>
+          <div class="mt-2.5 flex items-center justify-between gap-1">
+            <div class="flex gap-1">
+              <button class="mv-l px-2 py-1 rounded-lg bg-white dark:bg-zinc-800 border border-studio-border dark:border-zinc-700 font-mono text-[10px]" ${idx === 0 ? 'disabled style="opacity:0.35"' : ''}>←</button>
+              <button class="mv-r px-2 py-1 rounded-lg bg-white dark:bg-zinc-800 border border-studio-border dark:border-zinc-700 font-mono text-[10px]" ${idx === pdfMergeState.pages.length - 1 ? 'disabled style="opacity:0.35"' : ''}>→</button>
+            </div>
+            <div class="flex gap-1">
+              <button class="rot-btn px-2 py-1 rounded-lg bg-white dark:bg-zinc-800 border border-studio-border dark:border-zinc-700 font-mono text-[10px]">↻</button>
+              <button class="del-btn px-2 py-1 rounded-lg bg-rose-500/10 text-rose-600 font-mono text-[10px]">✕</button>
+            </div>
+          </div>
+        `;
+
+        card.querySelector('.pg-cb').onchange = (e) => { pg.selected = e.target.checked; renderPdfMergeGrid(); };
+        card.querySelector('.mv-l').onclick = () => {
+          [pdfMergeState.pages[idx - 1], pdfMergeState.pages[idx]] = [pdfMergeState.pages[idx], pdfMergeState.pages[idx - 1]];
+          renderPdfMergeGrid();
+        };
+        card.querySelector('.mv-r').onclick = () => {
+          [pdfMergeState.pages[idx + 1], pdfMergeState.pages[idx]] = [pdfMergeState.pages[idx], pdfMergeState.pages[idx + 1]];
+          renderPdfMergeGrid();
+        };
+        card.querySelector('.rot-btn').onclick = () => { pg.rotation = (pg.rotation + 90) % 360; renderPdfMergeGrid(); };
+        card.querySelector('.del-btn').onclick = () => { pdfMergeState.pages.splice(idx, 1); renderPdfMergeGrid(); };
+        grid.appendChild(card);
+      });
+
+      document.getElementById('pdfTotCount').textContent = pdfMergeState.pages.length;
+      document.getElementById('pdfSelCount').textContent = pdfMergeState.pages.filter(p => p.selected).length;
+      document.getElementById('pdfTotalBytes').textContent = formatBytes(pdfMergeState.sources.reduce((s, a) => s + a.size, 0));
+    }
+
+    document.getElementById('pdfSelectAllBtn').onclick = () => { pdfMergeState.pages.forEach(p => p.selected = true); renderPdfMergeGrid(); };
+    document.getElementById('pdfDeselectAllBtn').onclick = () => { pdfMergeState.pages.forEach(p => p.selected = false); renderPdfMergeGrid(); };
+    document.getElementById('pdfRotateAllBtn').onclick = () => { pdfMergeState.pages.forEach(p => p.rotation = (p.rotation + 90) % 360); renderPdfMergeGrid(); };
+
+    document.getElementById('pdfApplyRangeBtn').onclick = () => {
+      const val = document.getElementById('pdfRangeInput').value.trim();
+      if (!val) return;
+      const set = new Set();
+      val.split(',').forEach(part => {
+        const t = part.trim();
+        if (t.includes('-')) {
+          const [a, b] = t.split('-').map(n => parseInt(n, 10));
+          if (!isNaN(a) && !isNaN(b)) {
+            for (let i = Math.min(a, b); i <= Math.max(a, b); i++) set.add(i - 1);
+          }
+        } else {
+          const n = parseInt(t, 10);
+          if (!isNaN(n)) set.add(n - 1);
+        }
+      });
+      pdfMergeState.pages.forEach((p, idx) => p.selected = set.has(idx));
+      renderPdfMergeGrid();
+    };
+
+    async function exportOrganizedPdf(onlySelected) {
+      const list = onlySelected ? pdfMergeState.pages.filter(p => p.selected) : pdfMergeState.pages;
+      if (!list.length) return showToast('Select at least one page to export', 'error');
+
+      const outDoc = await PDFLib.PDFDocument.create();
+      for (const item of list) {
+        const src = pdfMergeState.sources.find(s => s.id === item.srcId);
+        const [copied] = await outDoc.copyPages(src.pdfLibDoc, [item.pageIndex]);
+        copied.setRotation(PDFLib.degrees((copied.getRotation().angle + item.rotation) % 360));
+        outDoc.addPage(copied);
+      }
+      const bytes = await outDoc.save();
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      downloadBlob(blob, `alltoolkit-${onlySelected ? 'extracted' : 'merged'}-${Date.now()}.pdf`);
+      showToast(`Exported PDF (${formatBytes(blob.size)})`, 'success');
+    }
+
+    document.getElementById('pdfDownloadSelectedBtn').onclick = () => exportOrganizedPdf(true);
+    document.getElementById('pdfDownloadAllBtn').onclick = () => exportOrganizedPdf(false);
+
+    // -------------------------------------------------------------------------
+    // 4. SECTION A — TOOL 2: PDF TO HIGH-DPI IMAGES
+    // -------------------------------------------------------------------------
+    let renderTargetPdf = null;
+    let renderedImageItems = [];
+
+    document.getElementById('pdfRenderInput').addEventListener('change', (e) => {
+      if (e.target.files[0]) {
+        renderTargetPdf = e.target.files[0];
+        const btn = document.getElementById('pdfRenderTriggerBtn');
+        btn.disabled = false;
+        btn.textContent = `Render "${renderTargetPdf.name.slice(0, 20)}"`;
+        executePdfToImages();
+      }
+    });
+
+    document.getElementById('pdfRenderTriggerBtn').addEventListener('click', executePdfToImages);
+
+    async function executePdfToImages() {
+      if (!renderTargetPdf) return;
+      const scale = parseFloat(document.getElementById('pdfDpiSelect').value) || 2;
+      const fmt = document.getElementById('pdfImgFmtSelect').value;
+      const ext = fmt === 'image/png' ? 'png' : 'jpg';
+
+      const grid = document.getElementById('pdfRenderGrid');
+      const empty = document.getElementById('pdfRenderEmpty');
+      const bar = document.getElementById('pdfRenderBar');
+
+      renderedImageItems.forEach(x => URL.revokeObjectURL(x.url));
+      renderedImageItems = [];
+      grid.innerHTML = '';
+
+      const buf = await renderTargetPdf.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      const base = renderTargetPdf.name.replace(/\.pdf$/i, '');
+
+      empty.classList.add('hidden');
+      grid.classList.remove('hidden');
+      bar.classList.remove('hidden');
+
+      let totalBytes = 0;
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const vp = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = vp.width;
+        canvas.height = vp.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+
+        const blob = await new Promise(r => canvas.toBlob(r, fmt, 0.92));
+        const url = URL.createObjectURL(blob);
+        const filename = `${base}-p${String(i).padStart(2, '0')}.${ext}`;
+        totalBytes += blob.size;
+        renderedImageItems.push({ filename, blob, url });
+
+        const card = document.createElement('div');
+        card.className = 'rounded-2xl border border-studio-border dark:border-studio-darkBorder bg-studio-subtle dark:bg-studio-darkSubtle p-3 flex flex-col justify-between';
+        card.innerHTML = `
+          <div class="h-44 rounded-xl bg-white dark:bg-zinc-900 flex items-center justify-center overflow-hidden p-2">
+            <img src="${url}" class="max-h-full max-w-full object-contain" />
+          </div>
+          <div class="mt-2.5 flex items-center justify-between text-xs font-mono">
+            <span>P.${i} • ${formatBytes(blob.size)}</span>
+            <button class="px-2.5 py-1 rounded-lg bg-zinc-900 dark:bg-indigo-600 text-white text-[10px]">Save</button>
+          </div>
+        `;
+        card.querySelector('button').onclick = () => downloadBlob(blob, filename);
+        grid.appendChild(card);
+      }
+
+      document.getElementById('pdfRenderStats').textContent = `${pdf.numPages} pages rendered at ${scale}x • ${formatBytes(totalBytes)} total`;
+      showToast(`Rasterized ${pdf.numPages} pages to ${ext.toUpperCase()}`, 'success');
+    }
+
+    document.getElementById('pdfRenderDownloadZipBtn').onclick = async () => {
+      if (!renderedImageItems.length) return;
+      const zip = new JSZip();
+      renderedImageItems.forEach(item => zip.file(item.filename, item.blob));
+      const blob = await zip.generateAsync({ type: 'blob' });
+      downloadBlob(blob, `pdf-images-${Date.now()}.zip`);
+    };
+
+    // -------------------------------------------------------------------------
+    // 5. SECTION A — TOOL 3: WATERMARK, STAMP & PAGE NUMBERS
+    // -------------------------------------------------------------------------
+    let stampSourceBytes = null;
+    let stampSourceName = '';
+
+    document.getElementById('stampOpacity').addEventListener('input', (e) => {
+      document.getElementById('stampOpacityVal').textContent = `${e.target.value}%`;
+    });
+    document.getElementById('stampSize').addEventListener('input', (e) => {
+      document.getElementById('stampSizeVal').textContent = `${e.target.value} pt`;
+    });
+
+    document.getElementById('pdfStampInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      stampSourceBytes = await file.arrayBuffer();
+      stampSourceName = file.name.replace(/\.pdf$/i, '');
+      const doc = await PDFLib.PDFDocument.load(stampSourceBytes.slice(0));
+      document.getElementById('pdfStampFileBanner').classList.remove('hidden');
+      document.getElementById('pdfStampFileName').textContent = file.name;
+      document.getElementById('pdfStampFilePages').textContent = `${doc.getPageCount()} pages`;
+      document.getElementById('pdfApplyStampBtn').disabled = false;
+    });
+
+    document.getElementById('pdfApplyStampBtn').addEventListener('click', async () => {
+      if (!stampSourceBytes) return;
+      const doc = await PDFLib.PDFDocument.load(stampSourceBytes.slice(0));
+      const fontBold = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+      const fontReg = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
+
+      const wmText = document.getElementById('stampText').value.trim();
+      const pos = document.getElementById('stampPosition').value;
+      const colorKey = document.getElementById('stampColor').value;
+      const opacity = parseInt(document.getElementById('stampOpacity').value, 10) / 100;
+      const size = parseInt(document.getElementById('stampSize').value, 10);
+      const addNums = document.getElementById('stampAddPageNums').checked;
+      const numFmt = document.getElementById('stampNumFormat').value;
+
+      const colorMap = {
+        slate: PDFLib.rgb(0.35, 0.38, 0.45),
+        crimson: PDFLib.rgb(0.82, 0.14, 0.24),
+        indigo: PDFLib.rgb(0.28, 0.25, 0.85)
+      };
+      const ink = colorMap[colorKey] || colorMap.slate;
+
+      const pages = doc.getPages();
+      const total = pages.length;
+
+      pages.forEach((page, i) => {
+        const { width, height } = page.getSize();
+        if (wmText) {
+          if (pos === 'diagonal') {
+            page.drawText(wmText, {
+              x: width * 0.12,
+              y: height * 0.42,
+              size,
+              font: fontBold,
+              color: ink,
+              opacity,
+              rotate: PDFLib.degrees(35)
+            });
+          } else {
+            page.drawText(wmText, {
+              x: 36,
+              y: height - 34,
+              size: Math.min(size, 18),
+              font: fontBold,
+              color: ink,
+              opacity
+            });
+          }
+        }
+
+        if (addNums) {
+          const label = numFmt === 'page-x-of-y' ? `Page ${i + 1} of ${total}` : `${i + 1} / ${total}`;
+          const textW = fontReg.widthOfTextAtSize(label, 10);
+          const xPos = numFmt === 'page-x-of-y' ? (width - textW) / 2 : width - textW - 36;
+          page.drawText(label, {
+            x: xPos,
+            y: 22,
+            size: 10,
+            font: fontReg,
+            color: PDFLib.rgb(0.35, 0.35, 0.4)
+          });
+        }
+      });
+
+      const outBytes = await doc.save();
+      downloadBlob(new Blob([outBytes], { type: 'application/pdf' }), `${stampSourceName}-stamped.pdf`);
+      showToast('Stamped PDF generated & downloaded', 'success');
+    });
+
+    // -------------------------------------------------------------------------
+    // 6. SECTION A — TOOL 4: PDF METADATA & PRIVACY SANITIZER
+    // -------------------------------------------------------------------------
+    let metaPdfBytes = null;
+    let metaPdfName = '';
+
+    document.getElementById('pdfMetaInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      metaPdfBytes = await file.arrayBuffer();
+      metaPdfName = file.name.replace(/\.pdf$/i, '');
+
+      const doc = await PDFLib.PDFDocument.load(metaPdfBytes.slice(0));
+      const pages = doc.getPages();
+      const firstSize = pages[0] ? pages[0].getSize() : { width: 0, height: 0 };
+
+      document.getElementById('pdfMetaEmpty').classList.add('hidden');
+      document.getElementById('pdfMetaEditor').classList.remove('hidden');
+
+      document.getElementById('metaStatPages').textContent = pages.length;
+      document.getElementById('metaStatDim').textContent = `${Math.round(firstSize.width)} × ${Math.round(firstSize.height)} pt`;
+      document.getElementById('metaStatSize').textContent = formatBytes(file.size);
+      document.getElementById('metaStatProducer').textContent = doc.getProducer() || 'Unknown';
+
+      document.getElementById('metaFieldTitle').value = doc.getTitle() || '';
+      document.getElementById('metaFieldAuthor').value = doc.getAuthor() || '';
+      document.getElementById('metaFieldSubject').value = doc.getSubject() || '';
+      document.getElementById('metaFieldKeywords').value = doc.getKeywords() || '';
+    });
+
+    document.getElementById('pdfMetaSaveBtn').onclick = async () => {
+      if (!metaPdfBytes) return;
+      const doc = await PDFLib.PDFDocument.load(metaPdfBytes.slice(0));
+      doc.setTitle(document.getElementById('metaFieldTitle').value);
+      doc.setAuthor(document.getElementById('metaFieldAuthor').value);
+      doc.setSubject(document.getElementById('metaFieldSubject').value);
+      const kw = document.getElementById('metaFieldKeywords').value.split(',').map(s => s.trim()).filter(Boolean);
+      doc.setKeywords(kw);
+      const out = await doc.save();
+      downloadBlob(new Blob([out], { type: 'application/pdf' }), `${metaPdfName}-updated.pdf`);
+      showToast('Saved updated PDF metadata', 'success');
+    };
+
+    document.getElementById('pdfMetaStripBtn').onclick = async () => {
+      if (!metaPdfBytes) return;
+      const doc = await PDFLib.PDFDocument.load(metaPdfBytes.slice(0));
+      doc.setTitle('');
+      doc.setAuthor('');
+      doc.setSubject('');
+      doc.setKeywords([]);
+      doc.setProducer('');
+      doc.setCreator('');
+      const out = await doc.save();
+      downloadBlob(new Blob([out], { type: 'application/pdf' }), `${metaPdfName}-sanitized.pdf`);
+      showToast('Stripped all PDF metadata cleanly', 'success');
+    };
+
+    // -------------------------------------------------------------------------
+    // 7. SECTION B — TOOL 1: UNIVERSAL IMAGE CONVERTER & RESIZER
+    // -------------------------------------------------------------------------
+    const convertImgItems = [];
+
+    document.getElementById('imgQualRange').addEventListener('input', (e) => {
+      document.getElementById('imgQualText').textContent = `${e.target.value}%`;
+    });
+
+    document.getElementById('imgConvertInput').addEventListener('change', (e) => {
+      loadConvertImages(Array.from(e.target.files));
+      e.target.value = '';
+    });
+
+    document.getElementById('imgConvertClearBtn').onclick = () => {
+      convertImgItems.forEach(it => { URL.revokeObjectURL(it.origUrl); if (it.outUrl) URL.revokeObjectURL(it.outUrl); });
+      convertImgItems.length = 0;
+      renderConvertImgGrid();
+    };
+
+    async function loadConvertImages(files) {
+      for (const file of files) {
+        const origUrl = URL.createObjectURL(file);
+        const img = new Image();
+        img.src = origUrl;
+        await new Promise(r => { img.onload = r; img.onerror = r; });
+        convertImgItems.push({
+          name: file.name,
+          origSize: file.size,
+          origUrl,
+          w: img.naturalWidth || 800,
+          h: img.naturalHeight || 600,
+          outBlob: null,
+          outUrl: null,
+          outSize: 0,
+          ext: 'webp'
+        });
+      }
+      await runBatchImageConvert();
+    }
+
+    async function runBatchImageConvert() {
+      if (!convertImgItems.length) return renderConvertImgGrid();
+      const fmt = document.getElementById('imgFmtOut').value;
+      const qual = parseInt(document.getElementById('imgQualRange').value, 10) / 100;
+      const maxW = parseInt(document.getElementById('imgMaxWInput').value, 10) || 0;
+      const ext = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png' }[fmt] || 'webp';
+
+      for (const it of convertImgItems) {
+        const img = new Image();
+        img.src = it.origUrl;
+        await new Promise(r => { img.onload = r; });
+
+        let w = it.w, h = it.h;
+        if (maxW > 0 && w > maxW) {
+          h = Math.round(h * (maxW / w));
+          w = maxW;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (fmt === 'image/jpeg') {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+
+        const blob = await new Promise(r => canvas.toBlob(r, fmt, qual));
+        if (it.outUrl) URL.revokeObjectURL(it.outUrl);
+        it.outBlob = blob;
+        it.outUrl = URL.createObjectURL(blob);
+        it.outSize = blob.size;
+        it.outW = w;
+        it.outH = h;
+        it.ext = ext;
+      }
+      renderConvertImgGrid();
+    }
+
+    document.getElementById('imgProcessAllBtn').onclick = runBatchImageConvert;
+
+    function renderConvertImgGrid() {
+      const grid = document.getElementById('imgConvertGrid');
+      const empty = document.getElementById('imgConvertEmpty');
+      const bar = document.getElementById('imgConvertStatsBar');
+
+      if (!convertImgItems.length) {
+        grid.classList.add('hidden');
+        bar.classList.add('hidden');
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      grid.classList.remove('hidden');
+      bar.classList.remove('hidden');
+      grid.innerHTML = '';
+
+      let before = 0, after = 0;
+      convertImgItems.forEach((it, idx) => {
+        before += it.origSize;
+        after += it.outSize;
+        const pct = Math.round(((it.origSize - it.outSize) / it.origSize) * 100);
+        const card = document.createElement('div');
+        card.className = 'rounded-2xl border border-studio-border dark:border-studio-darkBorder bg-studio-subtle dark:bg-studio-darkSubtle p-3.5 flex items-center gap-3.5';
+        card.innerHTML = `
+          <img src="${it.outUrl || it.origUrl}" class="w-16 h-16 rounded-xl object-contain bg-white dark:bg-zinc-900 border border-studio-border dark:border-studio-darkBorder shrink-0" />
+          <div class="min-w-0 flex-1 space-y-1">
+            <p class="text-xs font-bold truncate">${it.name}</p>
+            <p class="font-mono text-[11px] text-zinc-500">${it.outW}×${it.outH}px • ${formatBytes(it.origSize)} → <strong>${formatBytes(it.outSize)}</strong></p>
+            <div class="flex items-center justify-between pt-1">
+              <span class="font-mono text-[10px] px-2 py-0.5 rounded-full ${pct >= 0 ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/15 text-amber-700'}">${pct >= 0 ? `-${pct}% saved` : `+${Math.abs(pct)}%`}</span>
+              <button class="dl-one px-3 py-1 rounded-xl bg-zinc-900 dark:bg-indigo-600 text-white text-[11px] font-semibold">Save .${it.ext.toUpperCase()}</button>
+            </div>
+          </div>
+        `;
+        card.querySelector('.dl-one').onclick = () => {
+          const base = it.name.replace(/\.[^/.]+$/, '');
+          downloadBlob(it.outBlob, `${base}.${it.ext}`);
+        };
+        grid.appendChild(card);
+      });
+
+      document.getElementById('imgStatCount').textContent = convertImgItems.length;
+      document.getElementById('imgStatBefore').textContent = formatBytes(before);
+      document.getElementById('imgStatAfter').textContent = formatBytes(after);
+      const totPct = before > 0 ? Math.round(((before - after) / before) * 100) : 0;
+      document.getElementById('imgStatSavedBadge').textContent = totPct >= 0 ? `${totPct}% saved` : `+${Math.abs(totPct)}%`;
+    }
+
+    document.getElementById('imgDownloadAllZipBtn').onclick = async () => {
+      const zip = new JSZip();
+      convertImgItems.forEach((it, i) => {
+        const base = it.name.replace(/\.[^/.]+$/, '');
+        zip.file(`${base}_${i + 1}.${it.ext}`, it.outBlob);
+      });
+      const blob = await zip.generateAsync({ type: 'blob' });
+      downloadBlob(blob, `converted-images-${Date.now()}.zip`);
+    };
+
+    // -------------------------------------------------------------------------
+    // 8. SECTION B — TOOL 2: IMAGES TO PDF BUILDER
+    // -------------------------------------------------------------------------
+    const pdfBundleImages = [];
+
+    document.getElementById('imgToPdfInput').addEventListener('change', async (e) => {
+      for (const file of Array.from(e.target.files)) {
+        const url = URL.createObjectURL(file);
+        pdfBundleImages.push({ name: file.name, url });
+      }
+      renderImgToPdfList();
+      e.target.value = '';
+    });
+
+    document.getElementById('imgToPdfClearBtn').onclick = () => {
+      pdfBundleImages.forEach(x => URL.revokeObjectURL(x.url));
+      pdfBundleImages.length = 0;
+      renderImgToPdfList();
+    };
+
+    function renderImgToPdfList() {
+      const list = document.getElementById('imgToPdfList');
+      const empty = document.getElementById('imgToPdfEmpty');
+      const btn = document.getElementById('imgToPdfGenerateBtn');
+
+      if (!pdfBundleImages.length) {
+        list.classList.add('hidden');
+        empty.classList.remove('hidden');
+        btn.disabled = true;
+        return;
+      }
+      empty.classList.add('hidden');
+      list.classList.remove('hidden');
+      btn.disabled = false;
+      list.innerHTML = '';
+
+      pdfBundleImages.forEach((item, idx) => {
+        const el = document.createElement('div');
+        el.className = 'rounded-2xl border border-studio-border dark:border-studio-darkBorder bg-studio-subtle dark:bg-studio-darkSubtle p-2.5 flex flex-col justify-between';
+        el.innerHTML = `
+          <div class="h-32 rounded-xl bg-white dark:bg-zinc-900 flex items-center justify-center overflow-hidden p-1.5">
+            <img src="${item.url}" class="max-h-full max-w-full object-contain" />
+          </div>
+          <div class="mt-2 flex items-center justify-between font-mono text-[10px]">
+            <span>Slide #${idx + 1}</span>
+            <button class="text-rose-600 font-bold">✕</button>
+          </div>
+        `;
+        el.querySelector('button').onclick = () => {
+          URL.revokeObjectURL(item.url);
+          pdfBundleImages.splice(idx, 1);
+          renderImgToPdfList();
+        };
+        list.appendChild(el);
+      });
+    }
+
+    document.getElementById('imgToPdfGenerateBtn').onclick = async () => {
+      if (!pdfBundleImages.length) return;
+      const preset = document.getElementById('pdfPagePreset').value;
+      const margin = parseInt(document.getElementById('pdfPageMargin').value, 10) || 0;
+      const doc = await PDFLib.PDFDocument.create();
+
+      for (const item of pdfBundleImages) {
+        const img = new Image();
+        img.src = item.url;
+        await new Promise(r => { img.onload = r; });
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        const pngBlob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        const embedded = await doc.embedPng(await pngBlob.arrayBuffer());
+
+        let pageW = canvas.width + margin * 2;
+        let pageH = canvas.height + margin * 2;
+        if (preset === 'a4') { pageW = 595.28; pageH = 841.89; }
+        else if (preset === 'letter') { pageW = 612; pageH = 792; }
+
+        const page = doc.addPage([pageW, pageH]);
+        const availW = pageW - margin * 2;
+        const availH = pageH - margin * 2;
+        const scale = Math.min(availW / canvas.width, availH / canvas.height);
+        const drawW = canvas.width * scale;
+        const drawH = canvas.height * scale;
+
+        page.drawImage(embedded, {
+          x: (pageW - drawW) / 2,
+          y: (pageH - drawH) / 2,
+          width: drawW,
+          height: drawH
+        });
+      }
+
+      const bytes = await doc.save();
+      downloadBlob(new Blob([bytes], { type: 'application/pdf' }), `images-document-${Date.now()}.pdf`);
+      showToast(`Compiled ${pdfBundleImages.length} images into PDF`, 'success');
+    };
+
+    // -------------------------------------------------------------------------
+    // 9. SECTION B — TOOL 3: GIF FRAME EXTRACTOR & SPRITE SHEET
+    // -------------------------------------------------------------------------
+    let extractedGifFrames = []; // { index, blob, url, width, height }
+
+    document.getElementById('gifStudioInput').addEventListener('change', (e) => {
+      if (e.target.files[0]) loadGifFile(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    async function loadGifFile(file) {
+      const grid = document.getElementById('gifFramesGrid');
+      const empty = document.getElementById('gifEmpty');
+      const bar = document.getElementById('gifActionBar');
+
+      extractedGifFrames.forEach(f => URL.revokeObjectURL(f.url));
+      extractedGifFrames = [];
+      grid.innerHTML = '';
+
+      if ('ImageDecoder' in window) {
+        try {
+          const buf = await file.arrayBuffer();
+          const decoder = new ImageDecoder({ data: buf, type: 'image/gif' });
+          await decoder.tracks.ready;
+          const total = decoder.tracks.selectedTrack.frameCount;
+          const limit = Math.min(total, 150);
+
+          empty.classList.add('hidden');
+          grid.classList.remove('hidden');
+          bar.classList.remove('hidden');
+
+          for (let i = 0; i < limit; i++) {
+            const { image } = await decoder.decode({ frameIndex: i });
+            const canvas = document.createElement('canvas');
+            canvas.width = image.displayWidth;
+            canvas.height = image.displayHeight;
+            canvas.getContext('2d').drawImage(image, 0, 0);
+            image.close();
+
+            const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+            const url = URL.createObjectURL(blob);
+            extractedGifFrames.push({ index: i + 1, blob, url, width: canvas.width, height: canvas.height });
+
+            const cell = document.createElement('div');
+            cell.className = 'rounded-xl border border-studio-border dark:border-studio-darkBorder bg-studio-subtle dark:bg-studio-darkSubtle p-2 flex flex-col items-center gap-1';
+            cell.innerHTML = `
+              <img src="${url}" class="w-full h-16 object-contain bg-white dark:bg-zinc-900 rounded-lg" />
+              <div class="w-full flex items-center justify-between font-mono text-[10px]">
+                <span>#${i + 1}</span>
+                <button class="text-fuchsia-600 dark:text-fuchsia-400 font-semibold">PNG</button>
+              </div>
+            `;
+            cell.querySelector('button').onclick = () => downloadBlob(blob, `frame-${String(i + 1).padStart(3, '0')}.png`);
+            grid.appendChild(cell);
+          }
+
+          document.getElementById('gifStatsLabel').textContent = `${file.name} • ${extractedGifFrames.length} frames (${extractedGifFrames[0]?.width}×${extractedGifFrames[0]?.height}px)`;
+          showToast(`Extracted ${extractedGifFrames.length} GIF frames`, 'success');
+          return;
+        } catch (err) {
+          console.warn(err);
+        }
+      }
+      showToast('Browser ImageDecoder unavailable for multi-frame GIF', 'error');
+    }
+
+    document.getElementById('gifZipAllBtn').onclick = async () => {
+      if (!extractedGifFrames.length) return;
+      const zip = new JSZip();
+      extractedGifFrames.forEach(f => zip.file(`frame_${String(f.index).padStart(3, '0')}.png`, f.blob));
+      const blob = await zip.generateAsync({ type: 'blob' });
+      downloadBlob(blob, `gif-frames-${Date.now()}.zip`);
+    };
+
+    document.getElementById('gifSpriteSheetBtn').onclick = async () => {
+      if (!extractedGifFrames.length) return;
+      const fw = extractedGifFrames[0].width;
+      const fh = extractedGifFrames[0].height;
+      const sheet = document.createElement('canvas');
+      sheet.width = fw * extractedGifFrames.length;
+      sheet.height = fh;
+      const ctx = sheet.getContext('2d');
+
+      for (let i = 0; i < extractedGifFrames.length; i++) {
+        const img = new Image();
+        img.src = extractedGifFrames[i].url;
+        await new Promise(r => { img.onload = r; });
+        ctx.drawImage(img, i * fw, 0, fw, fh);
+      }
+
+      const blob = await new Promise(r => sheet.toBlob(r, 'image/png'));
+      downloadBlob(blob, `spritesheet-${extractedGifFrames.length}frames.png`);
+      showToast('Stitched horizontal PNG sprite sheet', 'success');
+    };
+
+    // -------------------------------------------------------------------------
+    // 10. SECTION B — TOOL 4: ZIP INSPECTOR & CREATOR
+    // -------------------------------------------------------------------------
+    document.getElementById('zipInspectInput').addEventListener('change', (e) => {
+      if (e.target.files[0]) inspectZipArchive(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    async function inspectZipArchive(file) {
+      const list = document.getElementById('zipTreeList');
+      const empty = document.getElementById('zipInspectEmpty');
+      const meta = document.getElementById('zipInspectMeta');
+      list.innerHTML = '';
+
+      const zip = await JSZip.loadAsync(file);
+      const entries = Object.values(zip.files);
+
+      empty.classList.add('hidden');
+      meta.classList.remove('hidden');
+      list.classList.remove('hidden');
+
+      document.getElementById('zipNameLabel').textContent = file.name;
+      document.getElementById('zipInfoLabel').textContent = `${entries.length} entries • ${formatBytes(file.size)}`;
+
+      entries.forEach(entry => {
+        const row = document.createElement('div');
+        row.className = 'px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs';
+        if (entry.dir) {
+          row.innerHTML = `<span class="font-mono text-zinc-400 truncate">📁 ${entry.name}</span><span class="font-mono text-[10px] text-zinc-400">DIR</span>`;
+        } else {
+          const canPreview = /\.(txt|md|json|csv|xml|html|css|js|py|png|jpe?g|webp|gif|svg)$/i.test(entry.name);
+          row.innerHTML = `
+            <span class="font-mono truncate flex-1" title="${entry.name}">📄 ${entry.name}</span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              ${canPreview ? '<button class="prev-btn px-2.5 py-1 rounded-lg bg-studio-subtle dark:bg-studio-darkSubtle border border-studio-border dark:border-studio-darkBorder font-mono text-[10px]">View</button>' : ''}
+              <button class="ext-btn px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-mono text-[10px]">Extract</button>
+            </div>
+          `;
+          if (canPreview) {
+            row.querySelector('.prev-btn').onclick = async () => {
+              const box = document.getElementById('zipInlinePreview');
+              const body = document.getElementById('zipPreviewBody');
+              document.getElementById('zipPreviewName').textContent = entry.name;
+              box.classList.remove('hidden');
+              if (/\.(png|jpe?g|webp|gif|svg)$/i.test(entry.name)) {
+                const b = await entry.async('blob');
+                body.innerHTML = `<img src="${URL.createObjectURL(b)}" class="max-h-48 mx-auto rounded-xl" />`;
+              } else {
+                const txt = await entry.async('string');
+                body.textContent = txt.slice(0, 12000);
+              }
+            };
+          }
+          row.querySelector('.ext-btn').onclick = async () => {
+            const b = await entry.async('blob');
+            downloadBlob(b, entry.name.split('/').pop() || 'file');
+          };
+        }
+        list.appendChild(row);
+      });
+    }
+
+    const zipCreateStaged = [];
+    document.getElementById('zipCreateInput').addEventListener('change', (e) => {
+      stageZipFiles(Array.from(e.target.files));
+      e.target.value = '';
+    });
+    document.getElementById('zipCreateClearBtn').onclick = () => {
+      zipCreateStaged.length = 0;
+      renderZipCreateList();
+    };
+
+    function stageZipFiles(files) {
+      files.forEach(f => zipCreateStaged.push(f));
+      renderZipCreateList();
+    }
+
+    function renderZipCreateList() {
+      const list = document.getElementById('zipCreateList');
+      const empty = document.getElementById('zipCreateEmpty');
+      const footer = document.getElementById('zipCreateFooter');
+
+      if (!zipCreateStaged.length) {
+        list.classList.add('hidden');
+        footer.classList.add('hidden');
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      list.classList.remove('hidden');
+      footer.classList.remove('hidden');
+      list.innerHTML = '';
+
+      let bytes = 0;
+      zipCreateStaged.forEach((f, idx) => {
+        bytes += f.size;
+        const row = document.createElement('div');
+        row.className = 'px-3.5 py-2 flex items-center justify-between text-xs font-mono';
+        row.innerHTML = `<span class="truncate">${f.name}</span><div class="flex items-center gap-2 shrink-0"><span class="text-zinc-400">${formatBytes(f.size)}</span><button class="text-rose-500">✕</button></div>`;
+        row.querySelector('button').onclick = () => { zipCreateStaged.splice(idx, 1); renderZipCreateList(); };
+        list.appendChild(row);
+      });
+      document.getElementById('zipStagedStat').textContent = `${zipCreateStaged.length} files (${formatBytes(bytes)})`;
+    }
+
+    document.getElementById('zipBuildDownloadBtn').onclick = async () => {
+      if (!zipCreateStaged.length) return;
+      const zip = new JSZip();
+      const level = parseInt(document.getElementById('zipDeflateLevel').value, 10) || 6;
+      let name = document.getElementById('zipOutName').value.trim() || 'alltoolkit-bundle.zip';
+      if (!name.toLowerCase().endsWith('.zip')) name += '.zip';
+
+      zipCreateStaged.forEach(f => zip.file(f.name, f));
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level } });
+      downloadBlob(blob, name);
+      showToast(`Created "${name}" (${formatBytes(blob.size)})`, 'success');
+    };
+
+    // -------------------------------------------------------------------------
+    // 11. SECTION B — TOOL 5: MARKDOWN & RICH DOCUMENT STUDIO
+    // -------------------------------------------------------------------------
+    const mdArea = document.getElementById('mdTextarea');
+    const mdPreview = document.getElementById('mdPreviewPane');
+
+    function refreshMarkdownPreview() {
+      const text = mdArea.value;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const mins = Math.max(1, Math.ceil(words / 200));
+      document.getElementById('mdWordStats').textContent = `${words} words • ${mins} min read`;
+      mdPreview.innerHTML = DOMPurify.sanitize(marked.parse(text));
+    }
+
+    mdArea.addEventListener('input', refreshMarkdownPreview);
+    refreshMarkdownPreview();
+
+    document.getElementById('mdFileLoadInput').addEventListener('change', async (e) => {
+      if (e.target.files[0]) {
+        mdArea.value = await e.target.files[0].text();
+        refreshMarkdownPreview();
+      }
+    });
+
+    document.getElementById('mdExportMdBtn').onclick = () => {
+      downloadBlob(new Blob([mdArea.value], { type: 'text/markdown;charset=utf-8' }), `document-${Date.now()}.md`);
+    };
+
+    document.getElementById('mdExportHtmlBtn').onclick = () => {
+      const body = DOMPurify.sanitize(marked.parse(mdArea.value));
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Alltoolkit Export</title><style>body{font-family:system-ui,sans-serif;max-width:740px;margin:40px auto;padding:0 20px;line-height:1.65;color:#18181b}table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #d4d4d8;padding:8px 12px;text-align:left}code{background:#f4f4f5;padding:2px 6px;border-radius:6px;font-family:monospace}</style></head><body>${body}</body></html>`;
+      downloadBlob(new Blob([html], { type: 'text/html;charset=utf-8' }), `document-${Date.now()}.html`);
+    };
+
+    document.getElementById('mdExportPdfBtn').onclick = async () => {
+      const doc = await PDFLib.PDFDocument.create();
+      const fontR = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
+      const fontB = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+      let page = doc.addPage([595.28, 841.89]);
+      let y = 790;
+
+      for (const raw of mdArea.value.split('\n')) {
+        let line = raw.trim();
+        let size = 10.5, font = fontR;
+        if (line.startsWith('# ')) { line = line.slice(2); size = 18; font = fontB; }
+        else if (line.startsWith('## ')) { line = line.slice(3); size = 14; font = fontB; }
+        else if (line.startsWith('### ')) { line = line.slice(4); size = 12; font = fontB; }
+        else { line = line.replace(/[*`]/g, ''); }
+
+        if (!line) { y -= 10; continue; }
+        if (y < 60) { page = doc.addPage([595.28, 841.89]); y = 790; }
+        page.drawText(line.slice(0, 95), { x: 50, y, size, font, color: PDFLib.rgb(0.1, 0.1, 0.12) });
+        y -= size + 6;
+      }
+
+      const bytes = await doc.save();
+      downloadBlob(new Blob([bytes], { type: 'application/pdf' }), `markdown-export-${Date.now()}.pdf`);
+      showToast('Exported Markdown to PDF', 'success');
+    };
+
+    // -------------------------------------------------------------------------
+    // 12. SECTION B — TOOL 6: DATA, BASE64 & WEB CRYPTO HASH
+    // -------------------------------------------------------------------------
+    document.querySelectorAll('.data-subtab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.data-subtab').forEach(t => {
+          t.className = 'data-subtab px-3.5 py-2 rounded-xl text-xs font-semibold bg-studio-subtle dark:bg-studio-darkSubtle text-zinc-700 dark:text-zinc-300';
+        });
+        tab.className = 'data-subtab px-3.5 py-2 rounded-xl text-xs font-semibold bg-teal-600 text-white';
+
+        document.querySelectorAll('.data-subview').forEach(v => v.classList.add('hidden'));
+        document.getElementById(`data-view-${tab.dataset.dataTab}`).classList.remove('hidden');
+      });
+    });
+
+    // JSON <-> CSV & Table
+    const dIn = document.getElementById('dataInBox');
+    const dOut = document.getElementById('dataOutBox');
+    let dExportExt = 'json';
+
+    function renderDataTable(rows) {
+      const wrap = document.getElementById('dataTableWrapper');
+      const table = document.getElementById('dataPreviewTable');
+      if (!Array.isArray(rows) || !rows.length || typeof rows[0] !== 'object') {
+        wrap.classList.add('hidden');
+        return;
+      }
+      const cols = Array.from(new Set(rows.flatMap(r => Object.keys(r))));
+      table.innerHTML = `
+        <thead class="bg-studio-subtle dark:bg-studio-darkSubtle border-b border-studio-border dark:border-studio-darkBorder">
+          <tr>${cols.map(c => `<th class="px-3 py-2 font-semibold">${c}</th>`).join('')}</tr>
+        </thead>
+        <tbody class="divide-y divide-studio-border dark:divide-studio-darkBorder">
+          ${rows.slice(0, 50).map(r => `<tr>${cols.map(c => `<td class="px-3 py-1.5">${r[c] ?? ''}</td>`).join('')}</tr>`).join('')}
+        </tbody>
+      `;
+      wrap.classList.remove('hidden');
+    }
+
+    document.getElementById('btnJsonPretty').onclick = () => {
+      try {
+        const parsed = JSON.parse(dIn.value);
+        dOut.value = JSON.stringify(parsed, null, 2);
+        dExportExt = 'json';
+        renderDataTable(parsed);
+      } catch (e) { showToast(`JSON Error: ${e.message}`, 'error'); }
+    };
+
+    document.getElementById('btnJsonMin').onclick = () => {
+      try {
+        const parsed = JSON.parse(dIn.value);
+        dOut.value = JSON.stringify(parsed);
+        dExportExt = 'json';
+      } catch (e) { showToast(`JSON Error: ${e.message}`, 'error'); }
+    };
+
+    document.getElementById('btnJsonToCsv').onclick = () => {
+      try {
+        const arr = JSON.parse(dIn.value);
+        if (!Array.isArray(arr) || !arr.length) return showToast('Requires JSON array of objects', 'error');
+        const cols = Array.from(new Set(arr.flatMap(o => Object.keys(o))));
+        const lines = [cols.join(','), ...arr.map(r => cols.map(c => `"${String(r[c] ?? '').replace(/"/g, '""')}"`).join(','))];
+        dOut.value = lines.join('\n');
+        dExportExt = 'csv';
+        renderDataTable(arr);
+      } catch (e) { showToast(`Conversion Error: ${e.message}`, 'error'); }
+    };
+
+    document.getElementById('btnCsvToJson').onclick = () => {
+      try {
+        const lines = dIn.value.trim().split(/\r?\n/).filter(Boolean);
+        if (lines.length < 2) return showToast('CSV needs header + at least 1 row', 'error');
+        const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+        const arr = lines.slice(1).map(line => {
+          const vals = line.split(',').map(v => v.replace(/^"|"$/g, '').trim());
+          const obj = {};
+          headers.forEach((h, i) => obj[h] = vals[i] ?? '');
+          return obj;
+        });
+        dOut.value = JSON.stringify(arr, null, 2);
+        dExportExt = 'json';
+        renderDataTable(arr);
+      } catch (e) { showToast('CSV Parse Error', 'error'); }
+    };
+
+    document.getElementById('btnDataCopy').onclick = () => copyText(dOut.value);
+    document.getElementById('btnDataDownload').onclick = () => {
+      if (!dOut.value) return;
+      downloadBlob(new Blob([dOut.value], { type: 'text/plain;charset=utf-8' }), `alltoolkit-data.${dExportExt}`);
+    };
+
+    // Base64 Codec
+    document.getElementById('b64TextSource').addEventListener('input', (e) => {
+      const bytes = new TextEncoder().encode(e.target.value);
+      let bin = '';
+      bytes.forEach(b => bin += String.fromCharCode(b));
+      const b64 = btoa(bin);
+      document.getElementById('b64EncodedBox').value = document.getElementById('b64DataUriCheck').checked
+        ? `data:text/plain;charset=utf-8;base64,${b64}`
+        : b64;
+    });
+
+    document.getElementById('b64EncodeFile').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const res = reader.result;
+        document.getElementById('b64EncodedBox').value = document.getElementById('b64DataUriCheck').checked ? res : res.split(',')[1];
+        showToast(`Encoded "${file.name}" to Base64`, 'success');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('b64CopyBtn').onclick = () => copyText(document.getElementById('b64EncodedBox').value);
+
+    document.getElementById('b64DecodeBtn').onclick = () => {
+      const raw = document.getElementById('b64DecodeBox').value.trim();
+      if (!raw) return;
+      try {
+        let mime = 'application/octet-stream', b64 = raw;
+        if (raw.startsWith('data:')) {
+          const m = raw.match(/^data:([^;]+);base64,(.*)$/s);
+          if (m) { mime = m[1]; b64 = m[2]; }
+        }
+        const bin = atob(b64.replace(/\s+/g, ''));
+        const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        const fname = document.getElementById('b64OutFilename').value.trim() || 'decoded.bin';
+        downloadBlob(new Blob([arr], { type: mime }), fname);
+        showToast(`Decoded & downloaded "${fname}"`, 'success');
+      } catch (e) { showToast('Invalid Base64 input', 'error'); }
+    };
+
+    // Web Crypto SHA-256 & SHA-512 Hasher
+    async function computeBufferHashes(buffer, label) {
+      const [h256, h512] = await Promise.all([
+        crypto.subtle.digest('SHA-256', buffer),
+        crypto.subtle.digest('SHA-512', buffer)
+      ]);
+      const toHex = (buf) => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+      document.getElementById('sha256Out').value = toHex(h256);
+      document.getElementById('sha512Out').value = toHex(h512);
+      document.getElementById('hashSourceInfo').textContent = label;
+      verifyChecksumMatch();
+    }
+
+    function verifyChecksumMatch() {
+      const expected = document.getElementById('hashCompareInput').value.trim().toLowerCase();
+      const badge = document.getElementById('hashMatchBadge');
+      if (!expected) { badge.textContent = ''; return; }
+      const s256 = document.getElementById('sha256Out').value.toLowerCase();
+      const s512 = document.getElementById('sha512Out').value.toLowerCase();
+      if (expected === s256 || expected === s512) {
+        badge.className = 'mt-1.5 font-mono text-xs font-semibold text-emerald-600 dark:text-emerald-400';
+        badge.textContent = '✓ EXACT CRYPTOGRAPHIC MATCH';
+      } else {
+        badge.className = 'mt-1.5 font-mono text-xs font-semibold text-rose-600 dark:text-rose-400';
+        badge.textContent = '✕ CHECKSUM MISMATCH';
+      }
+    }
+
+    document.getElementById('hashTextInput').addEventListener('input', (e) => {
+      const buf = new TextEncoder().encode(e.target.value).buffer;
+      computeBufferHashes(buf, `UTF-8 Text (${e.target.value.length} chars)`);
+    });
+
+    document.getElementById('hashFileInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const buf = await file.arrayBuffer();
+      await computeBufferHashes(buf, `File: ${file.name} (${formatBytes(file.size)})`);
+      showToast(`Computed SHA-256 & SHA-512 for "${file.name}"`, 'success');
+    });
+
+    document.getElementById('hashCompareInput').addEventListener('input', verifyChecksumMatch);
+  </script>
+</body>
+</html>
